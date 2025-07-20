@@ -1,0 +1,483 @@
+{
+  "name": "AI智能内容生成工作流",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-generation",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-ai-trigger",
+      "name": "AI生成触发器",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "ai-generation"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "hint-condition",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "hint",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-hint-generation",
+      "name": "判断生成类型",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.type}}",
+              "operation": "equal",
+              "value2": "image"
+            }
+          ]
+        }
+      },
+      "id": "if-image-generation",
+      "name": "判断是否生成图片",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.type}}",
+              "operation": "equal",
+              "value2": "analysis"
+            }
+          ]
+        }
+      },
+      "id": "if-analysis-generation",
+      "name": "判断是否生成分析",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 600]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5000/api/ai/generate-hint",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"poemId\": \"{{$json.poemId}}\",\n  \"stepId\": {{$json.stepId}},\n  \"context\": {{JSON.stringify($json.context || [])}},\n  \"currentLine\": \"{{$json.currentLine}}\",\n  \"blanks\": {{JSON.stringify($json.blanks || [])}}\n}",
+        "options": {}
+      },
+      "id": "generate-hint-api",
+      "name": "调用提示生成API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5000/api/ai/generate-image",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"poemId\": \"{{$json.poemId}}\",\n  \"stepId\": {{$json.stepId}},\n  \"description\": \"{{$json.description}}\",\n  \"style\": \"{{$json.options.style || 'traditional'}}\",\n  \"size\": \"{{$json.options.size || '512x512'}}\"\n}",
+        "options": {}
+      },
+      "id": "generate-image-api",
+      "name": "调用图片生成API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5000/api/ai/analyze-poem",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"poemText\": \"{{$json.poemText}}\",\n  \"analysisType\": \"{{$json.options.analysisType || 'comprehensive'}}\"\n}",
+        "options": {}
+      },
+      "id": "generate-analysis-api",
+      "name": "调用诗词分析API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 缓存生成的提示\nconst inputData = $input.first().json;\nconst cacheKey = `hint_${inputData.poemId}_${inputData.stepId}`;\n\n// 这里可以实现Redis缓存逻辑\n// 暂时使用内存缓存模拟\nconst cache = global.hintCache || (global.hintCache = new Map());\ncache.set(cacheKey, {\n  hint: inputData.hint,\n  generatedAt: new Date().toISOString(),\n  poemId: inputData.poemId,\n  stepId: inputData.stepId\n});\n\nconsole.log(`提示已缓存: ${cacheKey}`);\n\nreturn {\n  ...inputData,\n  cached: true,\n  cacheKey\n};"
+      },
+      "id": "cache-hint",
+      "name": "缓存生成的提示",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 缓存生成的图片\nconst inputData = $input.first().json;\nconst cacheKey = `image_${inputData.poemId}_${inputData.stepId}`;\n\n// 这里可以实现Redis缓存逻辑\nconst cache = global.imageCache || (global.imageCache = new Map());\ncache.set(cacheKey, {\n  imageUrl: inputData.imageUrl,\n  localPath: inputData.localPath,\n  generatedAt: new Date().toISOString(),\n  poemId: inputData.poemId,\n  stepId: inputData.stepId\n});\n\nconsole.log(`图片已缓存: ${cacheKey}`);\n\nreturn {\n  ...inputData,\n  cached: true,\n  cacheKey\n};"
+      },
+      "id": "cache-image",
+      "name": "缓存生成的图片",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 缓存生成的分析\nconst inputData = $input.first().json;\nconst cacheKey = `analysis_${inputData.poemId}_${inputData.analysisType}`;\n\n// 这里可以实现Redis缓存逻辑\nconst cache = global.analysisCache || (global.analysisCache = new Map());\ncache.set(cacheKey, {\n  analysis: inputData.analysis,\n  generatedAt: new Date().toISOString(),\n  poemId: inputData.poemId,\n  analysisType: inputData.analysisType\n});\n\nconsole.log(`分析已缓存: ${cacheKey}`);\n\nreturn {\n  ...inputData,\n  cached: true,\n  cacheKey\n};"
+      },
+      "id": "cache-analysis",
+      "name": "缓存生成的分析",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 记录生成日志\nconst inputData = $input.first().json;\n\nconst logEntry = {\n  type: inputData.type,\n  poemId: inputData.poemId,\n  stepId: inputData.stepId,\n  success: inputData.success || false,\n  generatedAt: new Date().toISOString(),\n  processingTime: inputData.processingTime || 0,\n  cacheKey: inputData.cacheKey\n};\n\n// 这里可以发送到日志系统\nconsole.log('AI生成日志:', logEntry);\n\n// 可以发送到监控系统\nif (inputData.success) {\n  console.log(`✅ ${inputData.type} 生成成功`);\n} else {\n  console.log(`❌ ${inputData.type} 生成失败`);\n}\n\nreturn {\n  ...inputData,\n  logged: true,\n  logEntry\n};"
+      },
+      "id": "log-generation",
+      "name": "记录生成日志",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.success}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-generation-success",
+      "name": "判断生成是否成功",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1340, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 准备成功响应\nconst inputData = $input.first().json;\n\nconst response = {\n  success: true,\n  type: inputData.type,\n  poemId: inputData.poemId,\n  stepId: inputData.stepId,\n  generatedAt: new Date().toISOString(),\n  cached: inputData.cached || false\n};\n\n// 根据类型添加相应的数据\nswitch (inputData.type) {\n  case 'hint':\n    response.hint = inputData.hint;\n    break;\n  case 'image':\n    response.imageUrl = inputData.imageUrl;\n    response.localPath = inputData.localPath;\n    break;\n  case 'analysis':\n    response.analysis = inputData.analysis;\n    response.analysisType = inputData.analysisType;\n    break;\n}\n\nreturn response;"
+      },
+      "id": "prepare-success-response",
+      "name": "准备成功响应",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 准备错误响应\nconst inputData = $input.first().json;\n\nconst response = {\n  success: false,\n  type: inputData.type,\n  poemId: inputData.poemId,\n  stepId: inputData.stepId,\n  error: inputData.error || '生成失败',\n  timestamp: new Date().toISOString()\n};\n\n// 记录错误详情\nconsole.error('AI生成失败:', response);\n\nreturn response;"
+      },
+      "id": "prepare-error-response",
+      "name": "准备错误响应",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify($json)}}"
+      },
+      "id": "webhook-response",
+      "name": "返回响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1780, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.type}}",
+              "operation": "equal",
+              "value2": "batch"
+            }
+          ]
+        }
+      },
+      "id": "if-batch-generation",
+      "name": "判断是否批量生成",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 800]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 批量生成处理\nconst inputData = $input.first().json;\nconst { poemIds, contentTypes } = inputData;\n\nconst batchTasks = [];\n\n// 为每个诗词和内容类型创建任务\npoemIds.forEach(poemId => {\n  contentTypes.forEach(contentType => {\n    batchTasks.push({\n      poemId,\n      type: contentType,\n      priority: 'background',\n      createdAt: new Date().toISOString()\n    });\n  });\n});\n\nconsole.log(`创建了 ${batchTasks.length} 个批量生成任务`);\n\nreturn {\n  batchTasks,\n  totalTasks: batchTasks.length,\n  estimatedTime: batchTasks.length * 30 // 每个任务预计30秒\n};"
+      },
+      "id": "process-batch-tasks",
+      "name": "处理批量任务",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 800]
+    },
+    {
+      "parameters": {
+        "batchSize": 3,
+        "options": {}
+      },
+      "id": "split-batch-tasks",
+      "name": "分割批量任务",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [900, 800]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 执行单个批量任务\nconst task = $input.first().json;\n\n// 模拟异步处理\nconst delay = ms => new Promise(resolve => setTimeout(resolve, ms));\n\n// 根据任务类型调用相应的API\nlet apiUrl = '';\nlet requestBody = {};\n\nswitch (task.type) {\n  case 'images':\n    apiUrl = 'http://localhost:5000/api/ai/generate-image';\n    requestBody = {\n      poemId: task.poemId,\n      stepId: 1,\n      description: `为诗词 ${task.poemId} 生成背景图片`,\n      style: 'traditional'\n    };\n    break;\n  case 'hints':\n    apiUrl = 'http://localhost:5000/api/ai/generate-hint';\n    requestBody = {\n      poemId: task.poemId,\n      stepId: 1,\n      context: [],\n      currentLine: '',\n      blanks: []\n    };\n    break;\n}\n\nreturn {\n  task,\n  apiUrl,\n  requestBody,\n  status: 'ready'\n};"
+      },
+      "id": "execute-batch-task",
+      "name": "执行批量任务",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 800]
+    }
+  ],
+  "connections": {
+    "webhook-ai-trigger": {
+      "main": [
+        [
+          {
+            "node": "if-hint-generation",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "if-image-generation",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "if-analysis-generation",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "if-batch-generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-hint-generation": {
+      "main": [
+        [
+          {
+            "node": "generate-hint-api",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-image-generation": {
+      "main": [
+        [
+          {
+            "node": "generate-image-api",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-analysis-generation": {
+      "main": [
+        [
+          {
+            "node": "generate-analysis-api",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "generate-hint-api": {
+      "main": [
+        [
+          {
+            "node": "cache-hint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "generate-image-api": {
+      "main": [
+        [
+          {
+            "node": "cache-image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "generate-analysis-api": {
+      "main": [
+        [
+          {
+            "node": "cache-analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cache-hint": {
+      "main": [
+        [
+          {
+            "node": "log-generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cache-image": {
+      "main": [
+        [
+          {
+            "node": "log-generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "cache-analysis": {
+      "main": [
+        [
+          {
+            "node": "log-generation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "log-generation": {
+      "main": [
+        [
+          {
+            "node": "if-generation-success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-generation-success": {
+      "main": [
+        [
+          {
+            "node": "prepare-success-response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "prepare-error-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prepare-success-response": {
+      "main": [
+        [
+          {
+            "node": "webhook-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prepare-error-response": {
+      "main": [
+        [
+          {
+            "node": "webhook-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-batch-generation": {
+      "main": [
+        [
+          {
+            "node": "process-batch-tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "process-batch-tasks": {
+      "main": [
+        [
+          {
+            "node": "split-batch-tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "split-batch-tasks": {
+      "main": [
+        [
+          {
+            "node": "execute-batch-task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "timezone": "Asia/Shanghai",
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "ai-generation",
+  "tags": ["ai", "content-generation", "poetry-learning"]
+}

@@ -1,0 +1,88 @@
+{
+  "name": "智能进度跟踪与成长分析",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "progress-analytics",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-progress-trigger",
+      "name": "进度分析触发器",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 400],
+      "webhookId": "progress-analytics"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 学习进度数据分析\nconst progressData = $input.all()[0].json;\nconst userId = progressData.userId;\nconst timeRange = progressData.timeRange || '30days';\nconst analysisType = progressData.analysisType || 'comprehensive';\n\n// 模拟用户学习数据\nconst mockUserData = {\n  userId: userId,\n  totalStudyTime: 1250, // 分钟\n  poemsStudied: 15,\n  averageScore: 78,\n  strengths: ['理解能力', '记忆力'],\n  weaknesses: ['写作表达', '文言文语法'],\n  recentActivities: [\n    { date: '2025-07-19', poem: '春晓', score: 85, timeSpent: 45 },\n    { date: '2025-07-18', poem: '静夜思', score: 72, timeSpent: 38 },\n    { date: '2025-07-17', poem: '爱莲说', score: 88, timeSpent: 52 },\n    { date: '2025-07-16', poem: '山行', score: 75, timeSpent: 35 },\n    { date: '2025-07-15', poem: '登鹳雀楼', score: 80, timeSpent: 42 }\n  ],\n  studyStreak: 12, // 连续学习天数\n  achievements: [\n    '连续学习10天',\n    '完成5首诗歌学习',\n    '平均分超过75分'\n  ]\n};\n\n// 计算学习趋势\nconst scores = mockUserData.recentActivities.map(a => a.score);\nconst timeSpent = mockUserData.recentActivities.map(a => a.timeSpent);\n\nconst averageRecentScore = scores.reduce((a, b) => a + b, 0) / scores.length;\nconst totalRecentTime = timeSpent.reduce((a, b) => a + b, 0);\nconst averageStudyTime = totalRecentTime / timeSpent.length;\n\n// 趋势分析\nconst scoreTrend = scores.length >= 3 ? \n  (scores[scores.length-1] + scores[scores.length-2]) / 2 > \n  (scores[0] + scores[1]) / 2 ? 'improving' : 'declining' : 'stable';\n\nconst timeTrend = timeSpent.length >= 3 ?\n  (timeSpent[timeSpent.length-1] + timeSpent[timeSpent.length-2]) / 2 > \n  (timeSpent[0] + timeSpent[1]) / 2 ? 'increasing' : 'decreasing' : 'stable';\n\n// 学习效率分析\nconst efficiency = averageRecentScore / averageStudyTime; // 分数/分钟\nconst efficiencyLevel = efficiency > 2 ? 'high' : efficiency > 1.5 ? 'medium' : 'low';\n\n// 生成洞察和建议\nconst insights = [];\nconst recommendations = [];\n\nif (scoreTrend === 'improving') {\n  insights.push('学习成绩呈上升趋势，保持得很好！');\n  recommendations.push('继续当前的学习方法');\n} else if (scoreTrend === 'declining') {\n  insights.push('最近成绩有所下降，需要调整学习策略');\n  recommendations.push('回顾之前的错误，加强薄弱环节');\n}\n\nif (timeTrend === 'increasing') {\n  insights.push('学习投入时间在增加，很有学习热情');\n} else if (timeTrend === 'decreasing') {\n  insights.push('学习时间在减少，注意保持学习习惯');\n  recommendations.push('制定更稳定的学习计划');\n}\n\nif (efficiencyLevel === 'high') {\n  insights.push('学习效率很高，能够快速掌握知识');\n} else if (efficiencyLevel === 'low') {\n  insights.push('学习效率可以提升，建议优化学习方法');\n  recommendations.push('尝试不同的学习技巧，如思维导图、记忆法等');\n}\n\nif (mockUserData.studyStreak >= 10) {\n  insights.push(`已连续学习${mockUserData.studyStreak}天，学习习惯很好！`);\n} else if (mockUserData.studyStreak < 5) {\n  recommendations.push('建议保持每日学习，培养良好习惯');\n}\n\nreturn {\n  success: true,\n  data: {\n    userId: userId,\n    analysisDate: new Date().toISOString(),\n    timeRange: timeRange,\n    summary: {\n      totalStudyTime: mockUserData.totalStudyTime,\n      poemsStudied: mockUserData.poemsStudied,\n      averageScore: mockUserData.averageScore,\n      studyStreak: mockUserData.studyStreak,\n      achievements: mockUserData.achievements\n    },\n    trends: {\n      scoresTrend: scoreTrend,\n      timeTrend: timeTrend,\n      efficiency: efficiencyLevel,\n      recentAverageScore: Math.round(averageRecentScore),\n      averageStudyTime: Math.round(averageStudyTime)\n    },\n    strengths: mockUserData.strengths,\n    weaknesses: mockUserData.weaknesses,\n    insights: insights,\n    recommendations: recommendations,\n    recentActivities: mockUserData.recentActivities\n  }\n};"
+      },
+      "id": "analyze-progress",
+      "name": "学习进度分析",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 生成个性化成长报告\nconst analysisData = $input.all()[0].json;\nconst summary = analysisData.summary;\nconst trends = analysisData.trends;\nconst strengths = analysisData.strengths;\nconst weaknesses = analysisData.weaknesses;\n\n// 计算学习等级\nconst totalExperience = summary.poemsStudied * 100 + summary.averageScore * 10;\nconst level = Math.floor(totalExperience / 1000) + 1;\nconst nextLevelExp = (level * 1000) - totalExperience;\n\n// 生成徽章系统\nconst badges = [];\nif (summary.studyStreak >= 7) badges.push({ name: '坚持学习', icon: '🏆', description: '连续学习7天' });\nif (summary.studyStreak >= 30) badges.push({ name: '学习达人', icon: '🌟', description: '连续学习30天' });\nif (summary.averageScore >= 80) badges.push({ name: '优秀学者', icon: '🎓', description: '平均分超过80分' });\nif (summary.poemsStudied >= 10) badges.push({ name: '博览群书', icon: '📚', description: '学习超过10首诗词' });\nif (summary.totalStudyTime >= 1200) badges.push({ name: '时间大师', icon: '⏰', description: '累计学习超过20小时' });\n\n// 成长里程碑\nconst milestones = [\n  { requirement: '学习5首诗词', achieved: summary.poemsStudied >= 5, reward: '解锁诗词鉴赏' },\n  { requirement: '连续学习14天', achieved: summary.studyStreak >= 14, reward: '解锁学习计划定制' },\n  { requirement: '平均分达到85分', achieved: summary.averageScore >= 85, reward: '解锁高级分析功能' },\n  { requirement: '累计学习30小时', achieved: summary.totalStudyTime >= 1800, reward: '解锁导师模式' }\n];\n\n// 下一阶段目标\nconst nextGoals = [];\nif (summary.averageScore < 90) {\n  nextGoals.push({ goal: '提升平均分到90分', progress: summary.averageScore / 90 * 100, tips: '多做练习题，加强理解' });\n}\nif (summary.poemsStudied < 20) {\n  nextGoals.push({ goal: '学习20首经典诗词', progress: summary.poemsStudied / 20 * 100, tips: '每天至少学习一首新诗词' });\n}\nif (summary.studyStreak < 21) {\n  nextGoals.push({ goal: '连续学习21天', progress: summary.studyStreak / 21 * 100, tips: '保持每日学习习惯' });\n}\n\n// 学习建议\nconst personalizedSuggestions = [];\n\nif (trends.scoresTrend === 'declining') {\n  personalizedSuggestions.push({\n    type: 'improvement',\n    title: '成绩提升建议',\n    content: '建议复习之前学过的内容，巩固基础知识',\n    action: '回顾错题集'\n  });\n}\n\nif (trends.efficiency === 'low') {\n  personalizedSuggestions.push({\n    type: 'efficiency',\n    title: '学习效率优化',\n    content: '尝试番茄工作法，25分钟专注学习+5分钟休息',\n    action: '调整学习方法'\n  });\n}\n\nif (weaknesses.includes('写作表达')) {\n  personalizedSuggestions.push({\n    type: 'skill',\n    title: '写作能力提升',\n    content: '多练习仿写和创作，从模仿开始逐步提高',\n    action: '参加写作练习'\n  });\n}\n\n// 同伴比较（匿名化）\nconst peerComparison = {\n  averageScore: {\n    user: summary.averageScore,\n    peer: 73, // 同级别用户平均分\n    percentile: summary.averageScore > 73 ? 75 : 45\n  },\n  studyTime: {\n    user: summary.totalStudyTime,\n    peer: 980,\n    percentile: summary.totalStudyTime > 980 ? 80 : 40\n  }\n};\n\nreturn {\n  success: true,\n  data: {\n    ...analysisData,\n    growthReport: {\n      level: level,\n      nextLevelExp: nextLevelExp,\n      levelProgress: ((totalExperience % 1000) / 1000) * 100,\n      badges: badges,\n      milestones: milestones,\n      nextGoals: nextGoals,\n      personalizedSuggestions: personalizedSuggestions,\n      peerComparison: peerComparison,\n      motivation: {\n        quote: '学而时习之，不亦说乎？',\n        encouragement: level > 3 ? '你已经是一个优秀的学习者了！' : '继续努力，你正在进步！',\n        nextMilestone: milestones.find(m => !m.achieved)?.requirement || '继续保持优秀'\n      }\n    }\n  }\n};"
+      },
+      "id": "generate-growth-report",
+      "name": "生成成长报告",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-progress",
+      "name": "返回进度报告",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 400]
+    }
+  ],
+  "connections": {
+    "webhook-progress-trigger": {
+      "main": [
+        [
+          {
+            "node": "学习进度分析",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "学习进度分析": {
+      "main": [
+        [
+          {
+            "node": "生成成长报告",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "生成成长报告": {
+      "main": [
+        [
+          {
+            "node": "返回进度报告",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

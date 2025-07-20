@@ -1,0 +1,234 @@
+{
+  "name": "沉浸式学习图片生成工作流",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-image",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook - 图片生成请求",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "generate-image"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "prompt",
+              "value": "={{ $json.prompt || '古风诗词意境图' }}"
+            },
+            {
+              "name": "style",
+              "value": "={{ $json.style || 'chinese_classical' }}"
+            },
+            {
+              "name": "poem_id",
+              "value": "={{ $json.poem_id }}"
+            },
+            {
+              "name": "line_index",
+              "value": "={{ $json.line_index }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "处理请求参数",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.prompt }}",
+              "operation": "contains",
+              "value2": "春"
+            }
+          ]
+        }
+      },
+      "name": "检查是否为春季主题",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "image_url",
+              "value": "https://picsum.photos/800/600?random=spring"
+            },
+            {
+              "name": "generation_time",
+              "value": "1200"
+            },
+            {
+              "name": "source",
+              "value": "n8n_mock"
+            },
+            {
+              "name": "theme",
+              "value": "春季意境"
+            }
+          ],
+          "boolean": [
+            {
+              "name": "success",
+              "value": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "生成春季图片",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        900,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "image_url",
+              "value": "https://picsum.photos/800/600?random={{ $json.line_index || 1 }}"
+            },
+            {
+              "name": "generation_time",
+              "value": "800"
+            },
+            {
+              "name": "source",
+              "value": "n8n_mock"
+            },
+            {
+              "name": "theme",
+              "value": "通用古风"
+            }
+          ],
+          "boolean": [
+            {
+              "name": "success",
+              "value": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "生成通用图片",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        900,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "name": "返回图片结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - 图片生成请求": {
+      "main": [
+        [
+          {
+            "node": "处理请求参数",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "处理请求参数": {
+      "main": [
+        [
+          {
+            "node": "检查是否为春季主题",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "检查是否为春季主题": {
+      "main": [
+        [
+          {
+            "node": "生成春季图片",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "生成通用图片",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "生成春季图片": {
+      "main": [
+        [
+          {
+            "node": "返回图片结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "生成通用图片": {
+      "main": [
+        [
+          {
+            "node": "返回图片结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "immersive-image-generation-v1",
+  "id": "immersive-image-generation",
+  "meta": {
+    "instanceId": "local-n8n"
+  },
+  "tags": ["沉浸式学习", "图片生成", "古诗词"]
+}

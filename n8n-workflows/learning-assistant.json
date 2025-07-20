@@ -1,0 +1,199 @@
+{
+  "name": "智能学习助手工作流",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "learning-assistant",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-learning-trigger",
+      "name": "学习助手触发器",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 400],
+      "webhookId": "learning-assistant"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "question-type",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "question",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-question",
+      "name": "判断是否为提问",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "explanation-type",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "explanation",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-explanation",
+      "name": "判断是否为释义",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 生成智能问题\nconst poemData = $input.all()[0].json;\nconst poemId = poemData.poemId;\nconst difficulty = poemData.difficulty || 'medium';\n\n// 根据难度生成不同类型的问题\nconst questions = {\n  easy: [\n    \"这首诗的作者是谁？\",\n    \"这首诗描写的是什么季节？\",\n    \"诗中提到了哪些景物？\"\n  ],\n  medium: [\n    \"这首诗表达了作者怎样的情感？\",\n    \"诗中使用了哪些修辞手法？\",\n    \"这首诗的主题思想是什么？\"\n  ],\n  hard: [\n    \"分析这首诗的艺术特色和写作技巧\",\n    \"这首诗在文学史上有什么重要意义？\",\n    \"比较这首诗与同时期其他作品的异同\"\n  ]\n};\n\nconst selectedQuestions = questions[difficulty] || questions.medium;\nconst randomQuestion = selectedQuestions[Math.floor(Math.random() * selectedQuestions.length)];\n\nreturn {\n  success: true,\n  data: {\n    type: 'question',\n    poemId: poemId,\n    question: randomQuestion,\n    difficulty: difficulty,\n    timestamp: new Date().toISOString(),\n    suggestions: selectedQuestions.filter(q => q !== randomQuestion).slice(0, 2)\n  }\n};"
+      },
+      "id": "generate-question",
+      "name": "生成智能问题",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 生成详细释义\nconst poemData = $input.all()[0].json;\nconst text = poemData.text || '';\nconst poemId = poemData.poemId;\n\n// 模拟AI释义生成\nconst explanations = {\n  '春晓': {\n    keywords: ['春眠', '不觉晓', '处处闻啼鸟', '夜来风雨声', '花落知多少'],\n    analysis: '这是一首描写春日清晨美景的五言绝句，表达了诗人对春天的热爱和对时光流逝的感慨。',\n    techniques: ['对比', '想象', '感官描写'],\n    theme: '热爱自然，珍惜时光'\n  },\n  '静夜思': {\n    keywords: ['床前明月光', '疑是地上霜', '举头望明月', '低头思故乡'],\n    analysis: '这首诗通过对月夜思乡的描写，表达了游子深切的思乡之情。',\n    techniques: ['比喻', '对偶', '情景交融'],\n    theme: '思乡怀亲'\n  },\n  '爱莲说': {\n    keywords: ['出淤泥而不染', '濯清涟而不妖', '中通外直', '不蔓不枝'],\n    analysis: '通过对莲花品格的赞美，表达了作者对高洁品格的追求和对君子品德的向往。',\n    techniques: ['托物言志', '对比', '排比'],\n    theme: '君子品格，道德修养'\n  }\n};\n\nconst explanation = explanations[poemId] || {\n  keywords: ['关键词待分析'],\n  analysis: '这是一篇优秀的古典文学作品，值得深入研读。',\n  techniques: ['修辞手法分析'],\n  theme: '主题思想解读'\n};\n\nreturn {\n  success: true,\n  data: {\n    type: 'explanation',\n    poemId: poemId,\n    explanation: explanation,\n    timestamp: new Date().toISOString(),\n    confidence: 0.85\n  }\n};"
+      },
+      "id": "generate-explanation",
+      "name": "生成详细释义",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 默认学习建议\nconst poemData = $input.all()[0].json;\n\nreturn {\n  success: true,\n  data: {\n    type: 'suggestion',\n    suggestions: [\n      '建议先通读全文，理解大意',\n      '注意古文中的关键字词',\n      '结合作者生平和时代背景理解',\n      '多朗读以体会韵律之美'\n    ],\n    tips: [\n      '可以尝试背诵经典段落',\n      '对比不同版本的译文',\n      '查阅相关的文学评论'\n    ],\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "generate-suggestion",
+      "name": "生成学习建议",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 600]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-result",
+      "name": "返回助手结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 400]
+    }
+  ],
+  "connections": {
+    "webhook-learning-trigger": {
+      "main": [
+        [
+          {
+            "node": "判断是否为提问",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "判断是否为释义", 
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "判断是否为提问": {
+      "main": [
+        [
+          {
+            "node": "生成智能问题",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "生成学习建议",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "判断是否为释义": {
+      "main": [
+        [
+          {
+            "node": "生成详细释义",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "生成智能问题": {
+      "main": [
+        [
+          {
+            "node": "返回助手结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "生成详细释义": {
+      "main": [
+        [
+          {
+            "node": "返回助手结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "生成学习建议": {
+      "main": [
+        [
+          {
+            "node": "返回助手结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

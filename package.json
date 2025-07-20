@@ -1,0 +1,34 @@
+{
+  "name": "classical-poetry-learning",
+  "version": "1.0.0",
+  "description": "基于n8n的沉浸式古诗文学习平台",
+  "main": "index.js",
+  "scripts": {
+    "start:all": "concurrently \"npx n8n start\" \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "start:with-n8n": "concurrently \"npx n8n start\" \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run n8n\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && npm start",
+    "n8n": "npx n8n start",
+    "n8n:docker": "docker run -it --rm --name n8n -p 5678:5678 n8nio/n8n",
+    "install:all": "npm install && cd frontend && npm install && cd backend && npm install",
+    "test:ai": "cd backend && npm run test:ai"
+  },
+  "keywords": [
+    "poetry",
+    "learning",
+    "n8n",
+    "education",
+    "chinese-literature"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "dependencies": {
+    "n8n": "^1.19.4"
+  }
+}

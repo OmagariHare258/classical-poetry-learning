@@ -1,0 +1,86 @@
+# 依赖和构建文件
+node_modules/
+*/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# 构建输出
+dist/
+build/
+.next/
+.nuxt/
+.vite/
+
+# 环境变量和配置文件
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+.env.*
+
+# 日志文件
+logs/
+*.log
+log/
+
+# 临时文件
+tmp/
+temp/
+.tmp/
+
+# 编辑器和IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统生成的文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 数据库文件
+*.sqlite
+*.sqlite3
+*.db
+
+# 上传文件
+uploads/
+static/uploads/
+
+# 缓存
+.cache/
+.parcel-cache/
+
+# 测试覆盖率
+coverage/
+.nyc_output/
+
+# TypeScript
+*.tsbuildinfo
+
+# ESLint
+.eslintcache
+
+# Stylelint
+.stylelintcache
+
+# 备份文件
+*.backup.*
+*.bak
+
+# N8N相关
+.n8n/
+
+# Redis dump
+dump.rdb

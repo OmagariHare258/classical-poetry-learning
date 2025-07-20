@@ -1,0 +1,237 @@
+{
+  "name": "沉浸式学习进度跟踪工作流",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST", 
+        "path": "immersive-progress",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook - 进度记录",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "immersive-progress"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "poem_id",
+              "value": "={{ $json.poem_id }}"
+            },
+            {
+              "name": "user_session",
+              "value": "={{ $json.session_id || 'anonymous' }}"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ $json.timestamp }}"
+            }
+          ],
+          "number": [
+            {
+              "name": "step_index",
+              "value": "={{ $json.step_index }}"
+            },
+            {
+              "name": "accuracy",
+              "value": "={{ $json.accuracy }}"
+            }
+          ],
+          "boolean": [
+            {
+              "name": "correct",
+              "value": "={{ $json.correct }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "处理进度数据",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.correct }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "检查答题正确性",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "feedback_type",
+              "value": "positive"
+            },
+            {
+              "name": "message",
+              "value": "太棒了！继续保持！"
+            },
+            {
+              "name": "next_suggestion",
+              "value": "你可以尝试更有挑战性的诗词"
+            }
+          ],
+          "number": [
+            {
+              "name": "reward_points",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "正确答案奖励",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        900,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "feedback_type", 
+              "value": "encouragement"
+            },
+            {
+              "name": "message",
+              "value": "没关系，再想想看！"
+            },
+            {
+              "name": "hint",
+              "value": "可以从诗词的意境和韵律来思考"
+            }
+          ],
+          "number": [
+            {
+              "name": "reward_points",
+              "value": "2"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "错误答案鼓励",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        900,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, data: $json, recorded_at: new Date().toISOString() } }}"
+      },
+      "name": "返回进度结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook - 进度记录": {
+      "main": [
+        [
+          {
+            "node": "处理进度数据",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "处理进度数据": {
+      "main": [
+        [
+          {
+            "node": "检查答题正确性",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "检查答题正确性": {
+      "main": [
+        [
+          {
+            "node": "正确答案奖励",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "错误答案鼓励",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "正确答案奖励": {
+      "main": [
+        [
+          {
+            "node": "返回进度结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "错误答案鼓励": {
+      "main": [
+        [
+          {
+            "node": "返回进度结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "immersive-progress-v1",
+  "id": "immersive-progress-tracking",
+  "meta": {
+    "instanceId": "local-n8n"
+  },
+  "tags": ["沉浸式学习", "进度跟踪", "反馈系统"]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "古诗文学习平台-核心工作流",
+  "version": "1.0.0",
+  "workflows": [
+    {
+      "name": "AI诗词生成",
+      "webhook": "/webhook/generate-poem",
+      "description": "根据主题和风格生成新的诗词",
+      "steps": [
+        "接收请求参数（主题、风格、难度）",
+        "调用OpenAI API生成诗词内容",
+        "格式化输出结果",
+        "返回生成的诗词"
+      ]
+    },
+    {
+      "name": "AI图片生成", 
+      "webhook": "/webhook/generate-image",
+      "description": "为诗词生成配套的背景图片",
+      "steps": [
+        "接收诗词内容或描述",
+        "调用DALL-E API生成图片",
+        "保存图片到本地",
+        "返回图片URL"
+      ]
+    },
+    {
+      "name": "学习进度追踪",
+      "webhook": "/webhook/track-progress", 
+      "description": "记录用户学习行为和进度",
+      "steps": [
+        "接收学习行为数据",
+        "更新用户学习记录",
+        "计算学习统计信息",
+        "触发个性化推荐"
+      ]
+    },
+    {
+      "name": "个性化推荐",
+      "webhook": "/webhook/get-recommendations",
+      "description": "基于用户行为推荐合适的诗词",
+      "steps": [
+        "分析用户学习偏好",
+        "匹配合适难度的诗词",
+        "生成推荐列表",
+        "返回推荐结果"
+      ]
+    }
+  ],
+  "settings": {
+    "endpoint": "http://localhost:5678",
+    "timeout": 30000,
+    "retries": 3
+  }
+}

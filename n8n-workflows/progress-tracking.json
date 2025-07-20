@@ -1,0 +1,352 @@
+{
+  "name": "学习进度跟踪工作流",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "webhook-progress-trigger",
+      "name": "进度跟踪触发器",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "progress-tracking"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.action}}",
+              "operation": "equal",
+              "value2": "start_learning"
+            }
+          ]
+        }
+      },
+      "id": "if-start-learning",
+      "name": "判断是否开始学习",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.action}}",
+              "operation": "equal",
+              "value2": "submit_answer"
+            }
+          ]
+        }
+      },
+      "id": "if-submit-answer",
+      "name": "判断是否提交答案",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.action}}",
+              "operation": "equal",
+              "value2": "complete_poem"
+            }
+          ]
+        }
+      },
+      "id": "if-complete-poem",
+      "name": "判断是否完成诗词",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 记录学习开始\nconst inputData = $input.first().json;\nconst { userId, poemId, sessionId } = inputData;\n\nconst learningSession = {\n  sessionId: sessionId || `session_${Date.now()}`,\n  userId,\n  poemId,\n  startTime: new Date().toISOString(),\n  status: 'in_progress',\n  currentStep: 1,\n  totalSteps: inputData.totalSteps || 0,\n  answers: [],\n  hints: [],\n  mistakes: [],\n  timeSpent: 0\n};\n\n// 这里可以保存到数据库\nconsole.log('学习会话开始:', learningSession);\n\n// 模拟保存到全局缓存\nconst sessions = global.learningSessions || (global.learningSessions = new Map());\nsessions.set(learningSession.sessionId, learningSession);\n\nreturn {\n  ...learningSession,\n  success: true,\n  message: '学习会话已开始'\n};"
+      },
+      "id": "record-learning-start",
+      "name": "记录学习开始",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 处理答案提交\nconst inputData = $input.first().json;\nconst { sessionId, stepId, userAnswer, correctAnswer, isCorrect, timeSpent } = inputData;\n\n// 获取学习会话\nconst sessions = global.learningSessions || new Map();\nconst session = sessions.get(sessionId);\n\nif (!session) {\n  return {\n    success: false,\n    error: '学习会话不存在'\n  };\n}\n\n// 记录答案\nconst answerRecord = {\n  stepId,\n  userAnswer,\n  correctAnswer,\n  isCorrect,\n  timeSpent,\n  submittedAt: new Date().toISOString(),\n  attempts: (session.answers.filter(a => a.stepId === stepId).length || 0) + 1\n};\n\nsession.answers.push(answerRecord);\n\n// 如果答案错误，记录错误\nif (!isCorrect) {\n  session.mistakes.push({\n    stepId,\n    userAnswer,\n    correctAnswer,\n    timestamp: new Date().toISOString()\n  });\n}\n\n// 更新当前步骤\nif (isCorrect) {\n  session.currentStep = Math.max(session.currentStep, stepId + 1);\n}\n\n// 更新总时间\nsession.timeSpent += timeSpent || 0;\nsession.lastActivity = new Date().toISOString();\n\n// 保存会话\nsessions.set(sessionId, session);\n\nconsole.log('答案已记录:', answerRecord);\n\nreturn {\n  ...answerRecord,\n  session: {\n    currentStep: session.currentStep,\n    totalAnswers: session.answers.length,\n    correctAnswers: session.answers.filter(a => a.isCorrect).length,\n    timeSpent: session.timeSpent\n  },\n  success: true\n};"
+      },
+      "id": "process-answer-submission",
+      "name": "处理答案提交",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 完成诗词学习\nconst inputData = $input.first().json;\nconst { sessionId, completionTime } = inputData;\n\n// 获取学习会话\nconst sessions = global.learningSessions || new Map();\nconst session = sessions.get(sessionId);\n\nif (!session) {\n  return {\n    success: false,\n    error: '学习会话不存在'\n  };\n}\n\n// 计算学习统计\nconst totalAnswers = session.answers.length;\nconst correctAnswers = session.answers.filter(a => a.isCorrect).length;\nconst accuracy = totalAnswers > 0 ? (correctAnswers / totalAnswers * 100).toFixed(2) : 0;\nconst totalTime = session.timeSpent + (completionTime || 0);\nconst averageTimePerStep = totalAnswers > 0 ? (totalTime / totalAnswers).toFixed(2) : 0;\n\n// 更新会话状态\nsession.status = 'completed';\nsession.endTime = new Date().toISOString();\nsession.timeSpent = totalTime;\nsession.completionStats = {\n  totalAnswers,\n  correctAnswers,\n  accuracy: parseFloat(accuracy),\n  totalTime,\n  averageTimePerStep: parseFloat(averageTimePerStep),\n  hintsUsed: session.hints.length,\n  mistakesMade: session.mistakes.length\n};\n\n// 保存完成的会话\nsessions.set(sessionId, session);\n\nconsole.log('诗词学习完成:', session.completionStats);\n\n// 这里可以调用API更新数据库\n// await updatePoemCompletion(session.poemId, session.userId, session.completionStats);\n\nreturn {\n  sessionId,\n  poemId: session.poemId,\n  userId: session.userId,\n  completionStats: session.completionStats,\n  success: true,\n  message: '诗词学习已完成'\n};"
+      },
+      "id": "complete-poem-learning",
+      "name": "完成诗词学习",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 600]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5000/api/poems/{{$json.poemId}}/complete",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"userId\": \"{{$json.userId}}\",\n  \"sessionId\": \"{{$json.sessionId}}\",\n  \"completionStats\": {{JSON.stringify($json.completionStats)}}\n}",
+        "options": {}
+      },
+      "id": "update-poem-completion",
+      "name": "更新诗词完成状态",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [900, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 生成学习报告\nconst inputData = $input.first().json;\nconst { completionStats, poemId, userId } = inputData;\n\n// 计算表现等级\nlet performanceLevel = 'beginner';\nif (completionStats.accuracy >= 90) {\n  performanceLevel = 'excellent';\n} else if (completionStats.accuracy >= 75) {\n  performanceLevel = 'good';\n} else if (completionStats.accuracy >= 60) {\n  performanceLevel = 'fair';\n}\n\n// 生成建议\nconst suggestions = [];\nif (completionStats.accuracy < 70) {\n  suggestions.push('建议多练习基础字词，加强记忆');\n}\nif (completionStats.averageTimePerStep > 60) {\n  suggestions.push('可以尝试提高答题速度，增强反应能力');\n}\nif (completionStats.hintsUsed > completionStats.totalAnswers * 0.5) {\n  suggestions.push('尝试减少提示的使用，培养独立思考能力');\n}\nif (suggestions.length === 0) {\n  suggestions.push('表现优秀！继续保持这种学习状态');\n}\n\n// 生成徽章\nconst badges = [];\nif (completionStats.accuracy === 100) {\n  badges.push('完美答题');\n}\nif (completionStats.hintsUsed === 0) {\n  badges.push('独立思考');\n}\nif (completionStats.averageTimePerStep < 30) {\n  badges.push('快速反应');\n}\nif (completionStats.mistakesMade === 0) {\n  badges.push('零失误');\n}\n\nconst learningReport = {\n  userId,\n  poemId,\n  completionStats,\n  performanceLevel,\n  suggestions,\n  badges,\n  generatedAt: new Date().toISOString(),\n  nextRecommendations: [\n    '可以尝试学习同一作者的其他作品',\n    '探索相同主题的诗词',\n    '学习更高难度的诗词'\n  ]\n};\n\nconsole.log('学习报告生成:', learningReport);\n\nreturn learningReport;"
+      },
+      "id": "generate-learning-report",
+      "name": "生成学习报告",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 600]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.action}}",
+              "operation": "equal",
+              "value2": "request_hint"
+            }
+          ]
+        }
+      },
+      "id": "if-request-hint",
+      "name": "判断是否请求提示",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 800]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 记录提示请求\nconst inputData = $input.first().json;\nconst { sessionId, stepId, hintType } = inputData;\n\n// 获取学习会话\nconst sessions = global.learningSessions || new Map();\nconst session = sessions.get(sessionId);\n\nif (!session) {\n  return {\n    success: false,\n    error: '学习会话不存在'\n  };\n}\n\n// 记录提示使用\nconst hintRecord = {\n  stepId,\n  hintType: hintType || 'general',\n  requestedAt: new Date().toISOString(),\n  count: session.hints.filter(h => h.stepId === stepId).length + 1\n};\n\nsession.hints.push(hintRecord);\nsession.lastActivity = new Date().toISOString();\n\n// 保存会话\nsessions.set(sessionId, session);\n\nconsole.log('提示请求已记录:', hintRecord);\n\nreturn {\n  ...hintRecord,\n  sessionId,\n  success: true,\n  message: '提示请求已记录'\n};"
+      },
+      "id": "record-hint-request",
+      "name": "记录提示请求",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 800]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 分析学习模式\nconst inputData = $input.first().json;\nconst { userId, timeRange } = inputData;\n\n// 获取用户的学习会话\nconst sessions = global.learningSessions || new Map();\nconst userSessions = Array.from(sessions.values()).filter(s => s.userId === userId);\n\n// 按时间范围过滤\nconst now = new Date();\nconst rangeStart = new Date();\nswitch (timeRange) {\n  case 'week':\n    rangeStart.setDate(now.getDate() - 7);\n    break;\n  case 'month':\n    rangeStart.setMonth(now.getMonth() - 1);\n    break;\n  default:\n    rangeStart.setDate(now.getDate() - 30);\n}\n\nconst recentSessions = userSessions.filter(s => \n  new Date(s.startTime) >= rangeStart\n);\n\n// 计算学习模式\nconst totalSessions = recentSessions.length;\nconst completedSessions = recentSessions.filter(s => s.status === 'completed').length;\nconst totalTime = recentSessions.reduce((sum, s) => sum + (s.timeSpent || 0), 0);\nconst averageAccuracy = recentSessions.length > 0 ? \n  recentSessions.reduce((sum, s) => {\n    const correct = s.answers.filter(a => a.isCorrect).length;\n    const total = s.answers.length;\n    return sum + (total > 0 ? correct / total : 0);\n  }, 0) / recentSessions.length * 100 : 0;\n\n// 学习习惯分析\nconst learningTimes = recentSessions.map(s => new Date(s.startTime).getHours());\nconst preferredHour = learningTimes.length > 0 ? \n  learningTimes.reduce((a, b, i, arr) => \n    arr.filter(v => v === a).length >= arr.filter(v => v === b).length ? a : b\n  ) : null;\n\nconst learningPattern = {\n  userId,\n  timeRange,\n  totalSessions,\n  completedSessions,\n  completionRate: totalSessions > 0 ? (completedSessions / totalSessions * 100).toFixed(2) : 0,\n  totalTime,\n  averageSessionTime: totalSessions > 0 ? (totalTime / totalSessions).toFixed(2) : 0,\n  averageAccuracy: averageAccuracy.toFixed(2),\n  preferredLearningHour: preferredHour,\n  analyzedAt: new Date().toISOString()\n};\n\nconsole.log('学习模式分析:', learningPattern);\n\nreturn learningPattern;"
+      },
+      "id": "analyze-learning-pattern",
+      "name": "分析学习模式",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 准备响应数据\nconst inputData = $input.first().json;\n\n// 根据不同的操作类型准备响应\nconst response = {\n  success: inputData.success || true,\n  timestamp: new Date().toISOString(),\n  data: inputData\n};\n\n// 移除敏感或冗余信息\nif (response.data.session) {\n  delete response.data.session.answers; // 不返回完整答案历史\n}\n\nreturn response;"
+      },
+      "id": "prepare-response",
+      "name": "准备响应",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify($json)}}"
+      },
+      "id": "webhook-response",
+      "name": "返回响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 400]
+    }
+  ],
+  "connections": {
+    "webhook-progress-trigger": {
+      "main": [
+        [
+          {
+            "node": "if-start-learning",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "if-submit-answer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "if-complete-poem",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "if-request-hint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-start-learning": {
+      "main": [
+        [
+          {
+            "node": "record-learning-start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-submit-answer": {
+      "main": [
+        [
+          {
+            "node": "process-answer-submission",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-complete-poem": {
+      "main": [
+        [
+          {
+            "node": "complete-poem-learning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "record-learning-start": {
+      "main": [
+        [
+          {
+            "node": "analyze-learning-pattern",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "process-answer-submission": {
+      "main": [
+        [
+          {
+            "node": "prepare-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "complete-poem-learning": {
+      "main": [
+        [
+          {
+            "node": "update-poem-completion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update-poem-completion": {
+      "main": [
+        [
+          {
+            "node": "generate-learning-report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "generate-learning-report": {
+      "main": [
+        [
+          {
+            "node": "prepare-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-request-hint": {
+      "main": [
+        [
+          {
+            "node": "record-hint-request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "record-hint-request": {
+      "main": [
+        [
+          {
+            "node": "prepare-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "analyze-learning-pattern": {
+      "main": [
+        [
+          {
+            "node": "prepare-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prepare-response": {
+      "main": [
+        [
+          {
+            "node": "webhook-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "timezone": "Asia/Shanghai",
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "progress-tracking",
+  "tags": ["progress", "tracking", "analytics", "poetry-learning"]
+}

@@ -1,0 +1,413 @@
+{
+  "name": "古诗文学习流程",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "webhook-start",
+      "name": "学习开始触发器",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "learning-flow"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.userAction}}",
+              "operation": "equal",
+              "value2": "start"
+            }
+          ]
+        }
+      },
+      "id": "if-start",
+      "name": "判断是否开始学习",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5000/api/poems/{{$json.poemId}}",
+        "options": {}
+      },
+      "id": "get-poem",
+      "name": "获取诗词数据",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.userAction}}",
+              "operation": "equal",
+              "value2": "answer"
+            }
+          ]
+        }
+      },
+      "id": "if-answer",
+      "name": "判断是否提交答案",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 检查用户答案是否正确\nconst userAnswers = $input.first().json.userAnswers || [];\nconst correctAnswers = $input.first().json.correctAnswers || [];\n\nconst isCorrect = userAnswers.length === correctAnswers.length && \n  userAnswers.every((answer, index) => answer === correctAnswers[index]);\n\nconst result = {\n  isCorrect,\n  userAnswers,\n  correctAnswers,\n  poemId: $input.first().json.poemId,\n  stepId: $input.first().json.stepId,\n  timestamp: new Date().toISOString()\n};\n\nreturn result;"
+      },
+      "id": "check-answer",
+      "name": "检查答案正确性",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.isCorrect}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "if-correct",
+      "name": "判断答案是否正确",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5000/api/ai/generate-image",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"poemId\": \"{{$json.poemId}}\",\n  \"stepId\": {{$json.stepId + 1}},\n  \"description\": \"{{$json.nextStepDescription}}\",\n  \"style\": \"traditional\"\n}",
+        "options": {}
+      },
+      "id": "pregenerate-image",
+      "name": "预生成下一步图片",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1120, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.userAction}}",
+              "operation": "equal",
+              "value2": "hint"
+            }
+          ]
+        }
+      },
+      "id": "if-hint",
+      "name": "判断是否请求提示",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [460, 700]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5000/api/ai/generate-hint",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"poemId\": \"{{$json.poemId}}\",\n  \"stepId\": {{$json.stepId}},\n  \"context\": {{JSON.stringify($json.context)}},\n  \"currentLine\": \"{{$json.currentLine}}\",\n  \"blanks\": {{JSON.stringify($json.blanks)}}\n}",
+        "options": {}
+      },
+      "id": "generate-hint",
+      "name": "生成智能提示",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 700]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5000/api/n8n/progress/update",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"poemId\": \"{{$json.poemId}}\",\n  \"stepId\": {{$json.stepId}},\n  \"userAnswers\": {{JSON.stringify($json.userAnswers)}},\n  \"isCorrect\": {{$json.isCorrect}},\n  \"timeSpent\": {{$json.timeSpent || 0}},\n  \"hintsUsed\": {{$json.hintsUsed || 0}}\n}",
+        "options": {}
+      },
+      "id": "update-progress",
+      "name": "更新学习进度",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1120, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 准备响应数据\nconst inputData = $input.first().json;\n\nconst response = {\n  success: true,\n  action: inputData.userAction,\n  poemId: inputData.poemId,\n  stepId: inputData.stepId,\n  timestamp: new Date().toISOString()\n};\n\n// 根据不同的用户行为添加相应的响应数据\nswitch (inputData.userAction) {\n  case 'start':\n    response.poemData = inputData.poemData;\n    response.currentStep = inputData.currentStep;\n    break;\n    \n  case 'answer':\n    response.isCorrect = inputData.isCorrect;\n    response.feedback = inputData.isCorrect ? '回答正确！' : '再试试看';\n    if (inputData.isCorrect && inputData.nextStep) {\n      response.nextStep = inputData.nextStep;\n      response.preGeneratedImage = inputData.preGeneratedImage;\n    }\n    break;\n    \n  case 'hint':\n    response.hint = inputData.hint;\n    response.hintsUsed = (inputData.hintsUsed || 0) + 1;\n    break;\n}\n\nreturn response;"
+      },
+      "id": "prepare-response",
+      "name": "准备响应数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{JSON.stringify($json)}}"
+      },
+      "id": "webhook-response",
+      "name": "返回响应",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1560, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 记录错误答案，用于后续分析\nconst inputData = $input.first().json;\n\nconst errorLog = {\n  poemId: inputData.poemId,\n  stepId: inputData.stepId,\n  userAnswers: inputData.userAnswers,\n  correctAnswers: inputData.correctAnswers,\n  timestamp: new Date().toISOString(),\n  sessionId: inputData.sessionId || 'anonymous'\n};\n\n// 这里可以发送到分析系统或数据库\nconsole.log('错误答案记录:', errorLog);\n\nreturn {\n  ...inputData,\n  errorLogged: true,\n  suggestion: '仔细思考诗词的意境和作者的情感'\n};"
+      },
+      "id": "log-error",
+      "name": "记录错误答案",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 700]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.stepId}}",
+              "operation": "equal",
+              "value2": "={{$json.totalSteps}}"
+            }
+          ]
+        }
+      },
+      "id": "if-completed",
+      "name": "判断是否完成全诗",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5000/api/poems/{{$json.poemId}}/complete",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"completedAt\": \"{{new Date().toISOString()}}\",\n  \"totalTime\": {{$json.totalTime || 0}},\n  \"accuracy\": {{$json.accuracy || 100}}\n}",
+        "options": {}
+      },
+      "id": "mark-completed",
+      "name": "标记诗词完成",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5000/api/ai/personalized-suggestions",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"learningHistory\": {{JSON.stringify($json.learningHistory)}},\n  \"currentPerformance\": {{JSON.stringify($json.performance)}},\n  \"preferences\": {{JSON.stringify($json.preferences)}}\n}",
+        "options": {}
+      },
+      "id": "generate-suggestions",
+      "name": "生成个性化建议",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1780, 200]
+    }
+  ],
+  "connections": {
+    "webhook-start": {
+      "main": [
+        [
+          {
+            "node": "if-start",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "if-answer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "if-hint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-start": {
+      "main": [
+        [
+          {
+            "node": "get-poem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get-poem": {
+      "main": [
+        [
+          {
+            "node": "prepare-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-answer": {
+      "main": [
+        [
+          {
+            "node": "check-answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check-answer": {
+      "main": [
+        [
+          {
+            "node": "if-correct",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-correct": {
+      "main": [
+        [
+          {
+            "node": "pregenerate-image",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "if-completed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "log-error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "pregenerate-image": {
+      "main": [
+        [
+          {
+            "node": "update-progress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-hint": {
+      "main": [
+        [
+          {
+            "node": "generate-hint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "generate-hint": {
+      "main": [
+        [
+          {
+            "node": "prepare-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "update-progress": {
+      "main": [
+        [
+          {
+            "node": "prepare-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prepare-response": {
+      "main": [
+        [
+          {
+            "node": "webhook-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "log-error": {
+      "main": [
+        [
+          {
+            "node": "prepare-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-completed": {
+      "main": [
+        [
+          {
+            "node": "mark-completed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mark-completed": {
+      "main": [
+        [
+          {
+            "node": "generate-suggestions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "timezone": "Asia/Shanghai"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "learning-flow",
+  "tags": ["poetry-learning", "education", "ai"]
+}

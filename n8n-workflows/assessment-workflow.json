@@ -1,0 +1,88 @@
+{
+  "name": "智能测试评估工作流",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "assessment",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-assessment-trigger",
+      "name": "测试评估触发器",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 400],
+      "webhookId": "assessment"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 智能评分算法\nconst assessmentData = $input.all()[0].json;\nconst answers = assessmentData.answers || [];\nconst poemId = assessmentData.poemId;\nconst testType = assessmentData.testType || 'comprehension';\n\n// 评分标准\nconst scoringRules = {\n  comprehension: {\n    maxScore: 100,\n    criteria: {\n      accuracy: 0.4,      // 准确性40%\n      depth: 0.3,         // 深度30% \n      creativity: 0.2,    // 创新性20%\n      expression: 0.1     // 表达10%\n    }\n  },\n  recitation: {\n    maxScore: 100,\n    criteria: {\n      accuracy: 0.5,      // 准确性50%\n      fluency: 0.3,       // 流利度30%\n      emotion: 0.2        // 感情20%\n    }\n  },\n  analysis: {\n    maxScore: 100,\n    criteria: {\n      understanding: 0.4,  // 理解40%\n      analysis: 0.4,      // 分析40%\n      originality: 0.2    // 独创性20%\n    }\n  }\n};\n\nconst rules = scoringRules[testType] || scoringRules.comprehension;\n\n// 模拟评分计算\nlet totalScore = 0;\nlet feedback = [];\nlet strengths = [];\nlet improvements = [];\n\nif (answers.length > 0) {\n  // 基础分数计算\n  const baseScore = Math.min(90, 60 + (answers.length * 10));\n  \n  // 质量评估(模拟)\n  const qualityScores = answers.map((answer, index) => {\n    const length = answer.length || 0;\n    const keywords = ['美', '情', '意', '景', '理', '志', '情感', '意境'].filter(word => \n      answer.includes(word)\n    ).length;\n    \n    return Math.min(25, 15 + length/20 + keywords * 2);\n  });\n  \n  totalScore = Math.min(100, baseScore + qualityScores.reduce((a, b) => a + b, 0) / answers.length);\n  \n  // 生成反馈\n  if (totalScore >= 90) {\n    feedback.push('优秀！你对古文的理解很深刻');\n    strengths.push('理解能力强', '表达清晰');\n  } else if (totalScore >= 75) {\n    feedback.push('良好！继续努力可以做得更好');\n    strengths.push('基础扎实');\n    improvements.push('可以更深入地分析');\n  } else if (totalScore >= 60) {\n    feedback.push('及格！需要加强对古文的理解');\n    improvements.push('多读多背', '加强基础知识');\n  } else {\n    feedback.push('需要努力！建议重新学习相关内容');\n    improvements.push('回顾基础知识', '多练习理解题');\n  }\n} else {\n  totalScore = 0;\n  feedback.push('未提交答案');\n  improvements.push('请完成测试题目');\n}\n\n// 生成学习建议\nconst suggestions = {\n  '春晓': ['春天主题诗歌对比阅读', '感官描写技法学习'],\n  '静夜思': ['思乡主题诗歌赏析', '月亮意象研究'],\n  '爱莲说': ['托物言志手法学习', '君子品格文化背景'],\n  default: ['多读经典', '加强文言文基础']\n};\n\nconst recommendedStudy = suggestions[poemId] || suggestions.default;\n\nreturn {\n  success: true,\n  data: {\n    score: Math.round(totalScore),\n    maxScore: rules.maxScore,\n    percentage: Math.round((totalScore / rules.maxScore) * 100),\n    level: totalScore >= 90 ? '优秀' : totalScore >= 75 ? '良好' : totalScore >= 60 ? '及格' : '需要努力',\n    feedback: feedback,\n    strengths: strengths,\n    improvements: improvements,\n    recommendations: recommendedStudy,\n    detailedScores: {\n      accuracy: Math.round(totalScore * rules.criteria.accuracy / 100),\n      depth: Math.round(totalScore * (rules.criteria.depth || rules.criteria.understanding || 0) / 100),\n      expression: Math.round(totalScore * (rules.criteria.expression || rules.criteria.fluency || rules.criteria.analysis || 0) / 100)\n    },\n    timestamp: new Date().toISOString(),\n    testType: testType,\n    poemId: poemId\n  }\n};"
+      },
+      "id": "calculate-score",
+      "name": "智能评分计算",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 生成个性化学习计划\nconst scoreData = $input.all()[0].json;\nconst score = scoreData.score || 0;\nconst level = scoreData.level;\nconst poemId = scoreData.poemId;\n\n// 根据成绩生成学习计划\nconst studyPlans = {\n  '优秀': {\n    duration: '1-2周',\n    focus: '拓展深化',\n    activities: [\n      '阅读相关的文学评论和研究',\n      '尝试创作类似风格的作品',\n      '比较不同版本的注释和译文',\n      '深入研究作者的其他作品'\n    ],\n    goals: ['成为该作品的专家', '培养独立鉴赏能力']\n  },\n  '良好': {\n    duration: '2-3周', \n    focus: '深入理解',\n    activities: [\n      '重点分析诗歌的艺术特色',\n      '背诵并理解重要段落',\n      '查阅作者生平和创作背景',\n      '练习相关的理解题目'\n    ],\n    goals: ['全面掌握作品内容', '提高鉴赏水平']\n  },\n  '及格': {\n    duration: '3-4周',\n    focus: '基础巩固',\n    activities: [\n      '反复朗读课文，熟悉内容',\n      '学习重点词汇和语法',\n      '理解基本的思想内容',\n      '完成基础练习题'\n    ],\n    goals: ['扎实掌握基础知识', '提高理解能力']\n  },\n  '需要努力': {\n    duration: '4-6周',\n    focus: '从头开始',\n    activities: [\n      '先学习相关的文言文基础',\n      '借助译文理解原文',\n      '学习基本的文学常识',\n      '从简单的练习开始'\n    ],\n    goals: ['建立基础知识体系', '培养学习兴趣']\n  }\n};\n\nconst plan = studyPlans[level] || studyPlans['需要努力'];\n\n// 生成具体的日程安排\nconst schedule = [];\nconst days = parseInt(plan.duration.split('-')[1].replace(/[^0-9]/g, '')) * 7 || 28;\n\nfor (let week = 1; week <= Math.ceil(days/7); week++) {\n  schedule.push({\n    week: week,\n    theme: week === 1 ? '基础学习' : week === 2 ? '深入理解' : week === 3 ? '练习巩固' : '拓展提高',\n    tasks: plan.activities.slice(0, 2).map(activity => `第${week}周: ${activity}`)\n  });\n}\n\nreturn {\n  success: true,\n  data: {\n    ...scoreData,\n    studyPlan: {\n      level: level,\n      duration: plan.duration,\n      focus: plan.focus,\n      activities: plan.activities,\n      goals: plan.goals,\n      schedule: schedule,\n      estimatedTime: `每天30-45分钟`,\n      difficulty: score >= 75 ? '进阶' : score >= 60 ? '中等' : '基础'\n    },\n    nextSteps: [\n      '制定具体的学习时间表',\n      '准备学习材料和工具',\n      '设定阶段性检查点',\n      '寻找学习伙伴或导师'\n    ]\n  }\n};"
+      },
+      "id": "generate-study-plan",
+      "name": "生成学习计划", 
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "respond-assessment",
+      "name": "返回评估结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 400]
+    }
+  ],
+  "connections": {
+    "webhook-assessment-trigger": {
+      "main": [
+        [
+          {
+            "node": "智能评分计算",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "智能评分计算": {
+      "main": [
+        [
+          {
+            "node": "生成学习计划",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "生成学习计划": {
+      "main": [
+        [
+          {
+            "node": "返回评估结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
