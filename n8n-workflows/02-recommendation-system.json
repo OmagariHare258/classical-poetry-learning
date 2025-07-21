@@ -1,0 +1,74 @@
+{
+  "name": "推荐系统",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "get-recommendations",
+        "responseMode": "responseNode"
+      },
+      "id": "node-webhook-1",
+      "name": "推荐请求",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 生成推荐列表\nconst userData = $input.first().json;\nconst { userId = 'anonymous', preferences = {} } = userData;\n\n// 推荐算法\nconst poems = [\n  { poemId: 1, title: '春晓', author: '孟浩然', difficulty: 'easy', reason: '适合初学者' },\n  { poemId: 2, title: '静夜思', author: '李白', difficulty: 'easy', reason: '经典名篇' },\n  { poemId: 3, title: '登鹳雀楼', author: '王之涣', difficulty: 'medium', reason: '哲理深刻' },\n  { poemId: 4, title: '将进酒', author: '李白', difficulty: 'hard', reason: '豪放派代表作' }\n];\n\n// 根据用户级别推荐\nconst userLevel = preferences.level || 'beginner';\nlet recommendations = [];\n\nif (userLevel === 'beginner') {\n  recommendations = poems.filter(p => p.difficulty === 'easy');\n} else if (userLevel === 'intermediate') {\n  recommendations = poems.filter(p => ['easy', 'medium'].includes(p.difficulty));\n} else {\n  recommendations = poems;\n}\n\nreturn {\n  success: true,\n  recommendations: recommendations.slice(0, 3),\n  userId: userId,\n  source: 'n8n_workflow'\n};"
+      },
+      "id": "node-code-2",
+      "name": "推荐算法",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "node-response-3",
+      "name": "返回推荐",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        600,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "推荐请求": {
+      "main": [
+        [
+          {
+            "node": "推荐算法",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "推荐算法": {
+      "main": [
+        [
+          {
+            "node": "返回推荐",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}

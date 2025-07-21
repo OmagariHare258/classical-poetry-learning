@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>React测试页面</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #fef7cd, #fed7aa, #fecaca);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 600px;
+        }
+        .title {
+            color: #dc2626;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .success-box {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #34d399;
+            margin-bottom: 20px;
+        }
+        .poem-box {
+            background: #fef3c7;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #f59e0b;
+        }
+        .info-box {
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #60a5fa;
+            margin-bottom: 20px;
+        }
+        .button {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        .button:hover {
+            background: #b91c1c;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        function App() {
+            const [message, setMessage] = React.useState("React应用已成功启动！");
+            const [clickCount, setClickCount] = React.useState(0);
+
+            const handleClick = () => {
+                setClickCount(prev => prev + 1);
+                setMessage(`React响应正常！点击次数: ${clickCount + 1}`);
+            };
+
+            const testBackend = async () => {
+                try {
+                    const response = await fetch('http://localhost:3001/api/health');
+                    if (response.ok) {
+                        setMessage("✅ 后端连接成功！");
+                    } else {
+                        setMessage("⚠️ 后端响应异常");
+                    }
+                } catch (error) {
+                    setMessage("❌ 后端连接失败");
+                }
+            };
+
+            return (
+                <div className="container">
+                    <h1 className="title">🏮 古诗词学习平台</h1>
+                    
+                    <div className="success-box">
+                        ✅ {message}
+                    </div>
+                    
+                    <div className="poem-box">
+                        <div style={{fontSize: '1.2em', lineHeight: '1.8', color: '#374151'}}>
+                            静夜思<br />
+                            李白<br /><br />
+                            床前明月光，疑是地上霜。<br />
+                            举头望明月，低头思故乡。
+                        </div>
+                    </div>
+                    
+                    <div className="info-box">
+                        📋 使用CDN版本的React进行测试<br />
+                        这个页面验证React功能是否正常
+                    </div>
+
+                    <div>
+                        <button className="button" onClick={handleClick}>
+                            测试React交互 ({clickCount})
+                        </button>
+                        <button className="button" onClick={testBackend}>
+                            测试后端连接
+                        </button>
+                        <button className="button" onClick={() => window.location.reload()}>
+                            刷新页面
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

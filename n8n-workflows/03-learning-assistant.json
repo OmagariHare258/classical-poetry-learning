@@ -1,0 +1,65 @@
+{
+  "name": "智能助手",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "learning-assistant",
+        "responseMode": "responseNode"
+      },
+      "id": "assistant-webhook",
+      "name": "助手接口",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const requestData = $input.first().json;\nconst { query = '', context = {}, userId = 'anonymous' } = requestData;\n\nlet response = '我是您的古诗词学习助手，很高兴为您服务！';\n\nif (query.includes('春晓') || query.includes('孟浩然')) {\n  response = '《春晓》是孟浩然的代表作，描绘了春天早晨的美好景象。全诗通过春眠不觉晓，处处闻啼鸟等句子，表达了诗人对春天的喜爱。';\n} else if (query.includes('静夜思') || query.includes('李白')) {\n  response = '《静夜思》是李白的思乡名作。床前明月光，疑是地上霜以简洁的语言表达了深深的乡愁，是中国古诗中最著名的篇章之一。';\n} else if (query.includes('登鹳雀楼') || query.includes('王之涣')) {\n  response = '《登鹳雀楼》体现了欲穷千里目，更上一层楼的人生哲理，鼓励人们要有远大的理想和不断进取的精神。';\n} else if (query.includes('学习方法') || query.includes('如何学')) {\n  response = '学习古诗词的好方法：1) 先了解诗词背景 2) 理解诗句含义 3) 体会情感韵味 4) 反复朗读背诵 5) 联系生活实际';\n} else if (query.includes('背诵') || query.includes('记忆')) {\n  response = '背诵古诗词的技巧：1) 理解诗意后再背诵 2) 按节奏分段记忆 3) 结合画面想象 4) 多读多练形成语感 5) 定期复习巩固';\n} else if (query.includes('难') || query.includes('不懂')) {\n  response = '遇到难懂的古诗词，建议：1) 查阅注释和翻译 2) 了解作者生平 3) 学习时代背景 4) 请教老师同学 5) 多读相关作品';\n}\n\nreturn {\n  success: true,\n  response: response,\n  query: query,\n  userId: userId,\n  source: 'n8n_workflow',\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "assistant-logic",
+      "name": "问答处理",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "assistant-response",
+      "name": "返回回复",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [600, 300]
+    }
+  ],
+  "connections": {
+    "助手接口": {
+      "main": [
+        [
+          {
+            "node": "问答处理",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "问答处理": {
+      "main": [
+        [
+          {
+            "node": "返回回复",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}

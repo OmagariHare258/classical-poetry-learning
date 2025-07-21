@@ -1,0 +1,74 @@
+{
+  "name": "诗词图像生成",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-image",
+        "responseMode": "responseNode"
+      },
+      "id": "image-webhook",
+      "name": "图像接口",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const requestData = $input.first().json;\nconst { poemTitle = '', poemContent = '', style = 'traditional' } = requestData;\n\nconst imageResponse = {\n  success: true,\n  imageUrl: `https://picsum.photos/400/300?random=${Date.now()}`,\n  poemTitle: poemTitle,\n  style: style,\n  description: `为《${poemTitle}》生成的${style === 'traditional' ? '传统' : '现代'}风格配图`,\n  timestamp: new Date().toISOString(),\n  fallback: true,\n  message: '图像生成功能正在开发中，当前显示示例图片'\n};\n\nreturn imageResponse;"
+      },
+      "id": "image-generation",
+      "name": "图像生成",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "image-response",
+      "name": "返回图像",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        600,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "图像接口": {
+      "main": [
+        [
+          {
+            "node": "图像生成",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "图像生成": {
+      "main": [
+        [
+          {
+            "node": "返回图像",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}

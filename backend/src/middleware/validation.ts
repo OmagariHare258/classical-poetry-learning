@@ -26,7 +26,7 @@ export const validatePoemQuery = (req: Request, res: Response, next: NextFunctio
   }
 
   req.query = value
-  next()
+  return next()
 }
 
 // 诗词ID验证
@@ -44,7 +44,7 @@ export const validatePoemId = (req: Request, res: Response, next: NextFunction) 
     })
   }
 
-  next()
+  return next()
 }
 
 // N8N工作流验证
@@ -63,7 +63,7 @@ export const validateN8nWorkflow = (req: Request, res: Response, next: NextFunct
     })
   }
 
-  next()
+  return next()
 }
 
 // AI请求验证
@@ -82,7 +82,7 @@ export const validateAiRequest = (req: Request, res: Response, next: NextFunctio
     })
   }
 
-  next()
+  return next()
 }
 
 // 生成提示验证
@@ -107,7 +107,7 @@ export const validateGenerateHint = (req: Request, res: Response, next: NextFunc
     })
   }
 
-  next()
+  return next()
 }
 
 // 生成图片验证
@@ -129,7 +129,7 @@ export const validateGenerateImage = (req: Request, res: Response, next: NextFun
     })
   }
 
-  next()
+  return next()
 }
 
 // 学习进度验证
@@ -151,7 +151,7 @@ export const validateLearningProgress = (req: Request, res: Response, next: Next
     })
   }
 
-  next()
+  return next()
 }
 
 // 通用错误处理
@@ -189,5 +189,5 @@ export const validateFileUpload = (req: Request, res: Response, next: NextFuncti
     })
   }
 
-  next()
+  return next()
 }

@@ -21,17 +21,48 @@ class DeepSeekAIManager {
   private baseURL: string;
   private apiKey: string;
   private model: string;
+  private isInDemoMode: boolean;
 
   constructor() {
     this.baseURL = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com';
-    this.apiKey = process.env.DEEPSEEK_API_KEY || '';
+    this.apiKey = process.env.DEEPSEEK_API_KEY || 'demo_mode';  // 使用演示模式标记
     this.model = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
+    this.isInDemoMode = !this.apiKey || this.apiKey === 'demo_mode';
     
-    if (!this.apiKey) {
-      console.warn('⚠️ DeepSeek API密钥未配置，AI功能将不可用');
+    if (this.isInDemoMode) {
+      console.warn('⚠️ DeepSeek API密钥未配置，AI功能将以演示模式运行（返回模拟数据）');
     } else {
       console.log('✅ DeepSeek AI服务已初始化');
     }
+  }
+  
+  /**
+   * 演示模式 - 生成模拟AI响应
+   */
+  private generateDemoResponse(request: AITextRequest): AIServiceResponse {
+    // 根据请求类型生成不同的模拟响应
+    const prompt = request.prompt.toLowerCase();
+    let response = '';
+    
+    if (prompt.includes('解释') || prompt.includes('分析')) {
+      response = '这是一个演示模式的解释分析。由于未配置API密钥，系统目前运行在演示模式。这首诗描绘了作者对自然的热爱和对生活的感悟，表达了积极向上的人生态度。诗中运用了丰富的意象和精妙的比喻，语言简洁而有力。';
+    } else if (prompt.includes('问题') || prompt.includes('练习')) {
+      response = '演示模式问题：\n1. 这首诗的主要意象有哪些？\n2. 作者在诗中表达了怎样的情感？\n3. 请简要分析诗中的意境特点。';
+    } else if (prompt.includes('提示') || prompt.includes('翻译')) {
+      response = '演示模式提示：静心体会诗中的意境，注意作者如何通过自然景物表达内心情感。';
+    } else {
+      response = '这是演示模式的AI响应。要使用完整功能，请配置DeepSeek API密钥。';
+    }
+    
+    return {
+      success: true,
+      data: {
+        response: response,
+        finish_reason: 'demo_mode'
+      },
+      service: 'deepseek_demo',
+      tokens_used: 0
+    };
   }
 
   /**
@@ -40,18 +71,20 @@ class DeepSeekAIManager {
   async generateText(request: AITextRequest): Promise<AIServiceResponse> {
     try {
       console.log('🔍 DeepSeek生成文本请求:', {
-        hasApiKey: !!this.apiKey,
+        hasApiKey: !this.isInDemoMode,
         baseURL: this.baseURL,
         model: this.model,
         prompt: request.prompt?.substring(0, 50) + '...'
       });
 
-      if (!this.apiKey) {
-        throw new Error('DeepSeek API密钥未配置');
+      // 如果是演示模式，返回模拟数据
+      if (this.isInDemoMode) {
+        console.log('🔍 使用演示模式，返回模拟数据');
+        return this.generateDemoResponse(request);
       }
 
       const messages = [];
-      
+
       // 添加系统提示
       if (request.system_prompt) {
         messages.push({
@@ -85,7 +118,7 @@ class DeepSeekAIManager {
       );
 
       const result = response.data;
-      
+
       if (result.choices && result.choices.length > 0) {
         return {
           success: true,
@@ -96,10 +129,8 @@ class DeepSeekAIManager {
       } else {
         throw new Error('DeepSeek API返回格式异常');
       }
-      
     } catch (error: any) {
       console.error('❌ DeepSeek API调用失败:', error.message);
-      
       return {
         success: false,
         error: error.response?.data?.error?.message || error.message || 'DeepSeek API调用失败',

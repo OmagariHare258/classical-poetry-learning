@@ -1,0 +1,198 @@
+{
+  "name": "AI内容生成",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-generation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "aa1bb2cc-dd3e-4f5g-6h7i-8j9k0l1m2n3o",
+      "name": "AI生成触发器",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "ai-generation"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.type}}",
+              "operation": "equal",
+              "value2": "hint"
+            }
+          ]
+        }
+      },
+      "id": "bb2cc3dd-ee4f-5g6h-7i8j-9k0l1m2n3o4p",
+      "name": "判断提示类型",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        460,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.type}}",
+              "operation": "equal",
+              "value2": "image"
+            }
+          ]
+        }
+      },
+      "id": "cc3dd4ee-ff5g-6h7i-8j9k-0l1m2n3o4p5q",
+      "name": "判断图片类型",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        460,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 生成学习提示\nconst inputData = $input.first().json;\nconst { poemId, prompt } = inputData;\n\nconst hints = {\n  '春晓': '这首诗描绘春天早晨的美好景象，体现诗人对自然的热爱。',\n  '静夜思': '通过月夜思乡表达游子的深切乡愁，语言朴实动人。',\n  '登鹳雀楼': '登高望远的哲理诗，体现积极向上的人生态度。'\n};\n\nconst result = {\n  success: true,\n  type: 'hint',\n  content: hints[poemId] || hints[prompt] || '请仔细体会诗句的意境和情感。',\n  poemId: poemId,\n  timestamp: new Date().toISOString()\n};\n\nreturn result;"
+      },
+      "id": "dd4ee5ff-gg6h-7i8j-9k0l-1m2n3o4p5q6r",
+      "name": "生成提示内容",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 生成意境图片\nconst inputData = $input.first().json;\nconst { poemId, style = 'classical' } = inputData;\n\nconst images = [\n  'https://picsum.photos/800/600?random=1',\n  'https://picsum.photos/800/600?random=2',\n  'https://picsum.photos/800/600?random=3',\n  'https://picsum.photos/800/600?random=4',\n  'https://picsum.photos/800/600?random=5'\n];\n\nconst randomImage = images[Math.floor(Math.random() * images.length)];\n\nconst result = {\n  success: true,\n  type: 'image',\n  image_url: randomImage,\n  generation_time: Math.floor(Math.random() * 2000) + 500,\n  style: style,\n  poemId: poemId,\n  timestamp: new Date().toISOString()\n};\n\nreturn result;"
+      },
+      "id": "ee5ff6gg-hh7i-8j9k-0l1m-2n3o4p5q6r7s",
+      "name": "生成图片内容",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 默认响应\nconst inputData = $input.first().json;\n\nconst result = {\n  success: true,\n  type: 'default',\n  message: 'AI内容生成服务已收到请求',\n  data: inputData,\n  timestamp: new Date().toISOString()\n};\n\nreturn result;"
+      },
+      "id": "ff6gg7hh-ii8j-9k0l-1m2n-3o4p5q6r7s8t",
+      "name": "默认响应",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "gg7hh8ii-jj9k-0l1m-2n3o-4p5q6r7s8t9u",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "AI生成触发器": {
+      "main": [
+        [
+          {
+            "node": "判断提示类型",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "判断图片类型",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "默认响应",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "判断提示类型": {
+      "main": [
+        [
+          {
+            "node": "生成提示内容",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "判断图片类型": {
+      "main": [
+        [
+          {
+            "node": "生成图片内容",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "生成提示内容": {
+      "main": [
+        [
+          {
+            "node": "返回结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "生成图片内容": {
+      "main": [
+        [
+          {
+            "node": "返回结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "默认响应": {
+      "main": [
+        [
+          {
+            "node": "返回结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}

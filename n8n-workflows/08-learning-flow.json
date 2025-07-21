@@ -1,0 +1,66 @@
+{
+  "name": "学习流程",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "learning-flow",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-flow-start",
+      "name": "学习流程触发器",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "learning-flow"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst { action = 'start', userId = 'anonymous', poemId = '', step = 1 } = data;\n\nlet response = {\n  success: true,\n  userId: userId,\n  poemId: poemId,\n  currentStep: step,\n  action: action,\n  timestamp: new Date().toISOString()\n};\n\nif (action === 'start') {\n  response.message = '开始学习古诗词！';\n  response.nextAction = 'read';\n  response.instructions = '请仔细阅读诗词内容';\n} else if (action === 'read') {\n  response.message = '阅读完成，开始练习！';\n  response.nextAction = 'practice';\n  response.instructions = '请完成练习题目';\n} else if (action === 'practice') {\n  response.message = '练习完成！';\n  response.nextAction = 'review';\n  response.instructions = '请回顾学习内容';\n} else if (action === 'review') {\n  response.message = '学习流程完成！';\n  response.nextAction = 'complete';\n  response.instructions = '恭喜完成本次学习';\n}\n\nreturn response;"
+      },
+      "id": "process-flow",
+      "name": "流程处理",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "flow-response",
+      "name": "返回流程状态",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 300]
+    }
+  ],
+  "connections": {
+    "学习流程触发器": {
+      "main": [
+        [
+          {
+            "node": "流程处理",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "流程处理": {
+      "main": [
+        [
+          {
+            "node": "返回流程状态",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}

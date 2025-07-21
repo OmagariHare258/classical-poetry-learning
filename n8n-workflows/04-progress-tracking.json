@@ -1,0 +1,74 @@
+{
+  "name": "进度跟踪系统",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "track-progress",
+        "responseMode": "responseNode"
+      },
+      "id": "progress-webhook",
+      "name": "进度接口",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const requestData = $input.first().json;\nconst { userId, completedPoems = [], studyTime = 0, difficulty = 'easy' } = requestData;\n\nconst progress = {\n  userId: userId || 'anonymous',\n  totalPoems: completedPoems.length,\n  studyTime: studyTime,\n  difficulty: difficulty,\n  level: Math.floor(completedPoems.length / 5) + 1,\n  progress: Math.min((completedPoems.length / 20) * 100, 100),\n  achievements: [],\n  recommendation: '继续努力学习古诗词！'\n};\n\nif (progress.totalPoems >= 5) {\n  progress.achievements.push('初学者');\n}\nif (progress.totalPoems >= 10) {\n  progress.achievements.push('进步者');\n}\nif (progress.totalPoems >= 20) {\n  progress.achievements.push('诗词达人');\n}\n\nif (progress.level <= 2) {\n  progress.recommendation = '建议继续学习基础诗词，打好根基。';\n} else if (progress.level <= 5) {\n  progress.recommendation = '您已有一定基础，可以尝试更难的诗词。';\n} else {\n  progress.recommendation = '您已是诗词高手，可以挑战经典名篇！';\n}\n\nreturn progress;"
+      },
+      "id": "progress-calculation",
+      "name": "进度计算",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "progress-response",
+      "name": "返回进度",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        600,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "进度接口": {
+      "main": [
+        [
+          {
+            "node": "进度计算",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "进度计算": {
+      "main": [
+        [
+          {
+            "node": "返回进度",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}

@@ -14,10 +14,10 @@
 ## 🏗️ 技术架构
 
 - **前端**: React + TypeScript + Tailwind CSS
-- **后端**: Node.js + Express + MySQL
+- **后端**: Node.js + Express + SQLite
 - **AI服务**: DeepSeek API (主要) + 国内AI服务 (备用)
 - **工作流**: n8n (自动启动和连接)
-- **数据库**: MySQL 9.3
+- **数据库**: SQLite (轻量级嵌入式数据库)
 - **图片生成**: AI驱动的古风图片生成
 
 ## 🔧 核心功能
@@ -47,17 +47,17 @@
 ### 环境要求
 
 - **Node.js**: 18.0+
-- **MySQL**: 9.0+
 - **npm**: 8.0+
 - **操作系统**: Windows 10/11, macOS, Linux
+- **数据库**: SQLite (无需单独安装)
 
 ### 完整启动（推荐）
 
 ```bash
-# Windows 一键启动所有服务（推荐）
-scripts\start-all.bat
+# Windows SQLite版本启动（推荐 - 无需MySQL）
+npm run start:sqlite
 
-# 或使用npm脚本启动所有服务
+# 或者传统MySQL版本启动
 npm run start:with-n8n
 
 # 手动分别启动各个服务：
@@ -65,9 +65,9 @@ npm run start:with-n8n
 # 1. 启动n8n工作流服务
 npm run n8n
 
-# 2. 启动后端服务 
+# 2. 启动后端服务 (SQLite版本)
 cd backend
-npm run dev
+npm run dev-sqlite
 
 # 3. 启动前端服务
 cd frontend
@@ -82,18 +82,18 @@ cp backend/.env.example backend/.env
 
 # 2. 编辑环境变量文件，配置以下关键项：
 # - DEEPSEEK_API_KEY: DeepSeek AI API密钥
-# - DB_PASSWORD: MySQL数据库密码
+# - SQLITE_DB_PATH: SQLite数据库文件路径（可选，默认：data/poetry_learning.sqlite）
 # - N8N_API_KEY: n8n API密钥（可选）
 ```
 
 ### 访问地址
 
-- **前端应用**: <http://localhost:3000>
+- **前端应用**: <http://localhost:3002> （自动分配可用端口）
 - **后端API**: <http://localhost:5000>
 - **n8n工作流**: <http://localhost:5678>
 - **API健康检查**: <http://localhost:5000/api/health>
 - **AI服务状态**: <http://localhost:5000/api/ai/health>
-- **n8n连接状态**: <http://localhost:5000/api/n8n/status>
+- **诗词数据**: <http://localhost:5000/api/poems>
 
 ## 🔥 新增功能
 

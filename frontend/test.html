@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>古诗词学习平台 - 测试页面</title>
+    <style>
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background: linear-gradient(135deg, #fef7cd, #fed7aa, #fecaca);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 600px;
+        }
+        h1 {
+            color: #dc2626;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .poem-box {
+            background: #fef3c7;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #f59e0b;
+        }
+        .poem-text {
+            font-size: 1.2em;
+            line-height: 1.8;
+            color: #374151;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #34d399;
+        }
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #60a5fa;
+        }
+        .buttons {
+            margin-top: 30px;
+        }
+        button {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            margin: 0 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #b91c1c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏮 古诗词学习平台</h1>
+        
+        <div class="status success">
+            ✅ 前端测试页面加载成功！
+        </div>
+        
+        <div class="poem-box">
+            <div class="poem-text">
+                静夜思<br>
+                李白<br><br>
+                床前明月光，疑是地上霜。<br>
+                举头望明月，低头思故乡。
+            </div>
+        </div>
+        
+        <div class="status info">
+            📋 系统状态检查
+        </div>
+        
+        <div id="status-check">
+            <p>🔍 正在检查后端连接...</p>
+        </div>
+        
+        <div class="buttons">
+            <button onclick="checkBackend()">检查后端API</button>
+            <button onclick="checkN8n()">检查n8n服务</button>
+            <button onclick="location.reload()">刷新页面</button>
+        </div>
+    </div>
+
+    <script>
+        // 检查后端API状态
+        async function checkBackend() {
+            const statusDiv = document.getElementById('status-check');
+            try {
+                statusDiv.innerHTML = '<p>🔍 正在检查后端API...</p>';
+                const response = await fetch('http://localhost:3001/api/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    statusDiv.innerHTML = '<p style="color: green;">✅ 后端API连接正常</p>';
+                } else {
+                    statusDiv.innerHTML = '<p style="color: orange;">⚠️ 后端API响应异常</p>';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<p style="color: red;">❌ 后端API无法连接</p>';
+            }
+        }
+        
+        // 检查n8n服务状态
+        async function checkN8n() {
+            const statusDiv = document.getElementById('status-check');
+            try {
+                statusDiv.innerHTML = '<p>🔍 正在检查n8n服务...</p>';
+                const response = await fetch('http://localhost:5678');
+                if (response.ok) {
+                    statusDiv.innerHTML = '<p style="color: green;">✅ n8n服务连接正常</p>';
+                } else {
+                    statusDiv.innerHTML = '<p style="color: orange;">⚠️ n8n服务响应异常</p>';
+                }
+            } catch (error) {
+                statusDiv.innerHTML = '<p style="color: red;">❌ n8n服务无法连接</p>';
+            }
+        }
+        
+        // 页面加载时自动检查
+        window.onload = function() {
+            setTimeout(checkBackend, 1000);
+        };
+    </script>
+</body>
+</html>

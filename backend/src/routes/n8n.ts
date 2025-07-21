@@ -204,7 +204,7 @@ router.post('/generate-image', async (req, res) => {
     
     const randomIndex = Math.floor(Math.random() * fallbackImages.length)
     
-    res.json({
+    return res.json({
       success: true,
       data: {
         image_url: fallbackImages[randomIndex],
@@ -215,7 +215,7 @@ router.post('/generate-image', async (req, res) => {
 
   } catch (error) {
     console.error('图片生成失败:', error)
-    res.status(500).json({ 
+    return res.status(500).json({ 
       success: false,
       error: '图片生成失败',
       details: error instanceof Error ? error.message : '未知错误'
@@ -255,7 +255,7 @@ router.post('/immersive-progress', async (req, res) => {
     // 备用方案：本地记录（这里可以存储到数据库）
     console.log('沉浸式学习进度记录:', progressData)
     
-    res.json({
+    return res.json({
       success: true,
       message: '学习进度已本地记录',
       data: progressData
@@ -263,7 +263,7 @@ router.post('/immersive-progress', async (req, res) => {
 
   } catch (error) {
     console.error('学习进度记录失败:', error)
-    res.status(500).json({ 
+    return res.status(500).json({ 
       success: false,
       error: '学习进度记录失败',
       details: error instanceof Error ? error.message : '未知错误'
@@ -400,6 +400,188 @@ router.post('/trigger/cache-cleanup', async (req, res) => {
   }
 })
 
+// 获取个性化推荐
+router.post('/get-recommendations', async (req, res) => {
+  try {
+    const { userId = 'anonymous', preferences = {}, currentPoem = null } = req.body
+
+    const recommendationData = {
+      userId,
+      preferences,
+      currentPoem,
+      timestamp: new Date().toISOString()
+    }
+
+    // 尝试调用N8N推荐工作流
+    try {
+      const response = await n8nClient.post('/webhook/get-recommendations', recommendationData)
+      
+      return res.json({
+        success: true,
+        recommendations: response.data.recommendations || [],
+        source: 'n8n_workflow'
+      })
+    } catch (n8nError: any) {
+      console.log('N8N推荐工作流失败，使用备用方案:', n8nError?.message || 'Unknown error')
+    }
+
+    // 备用推荐方案
+    const fallbackRecommendations = [
+      { poemId: 1, title: '春晓', reason: '适合初学者，意境清新' },
+      { poemId: 2, title: '静夜思', reason: '经典名篇，易于理解' },
+      { poemId: 3, title: '登鹳雀楼', reason: '哲理深刻，适合进阶学习' }
+    ]
+    
+    return res.json({
+      success: true,
+      recommendations: fallbackRecommendations,
+      source: 'fallback'
+    })
+
+  } catch (error) {
+    console.error('获取推荐失败:', error)
+    return res.status(500).json({ 
+      success: false,
+      error: '获取推荐失败',
+      details: error instanceof Error ? error.message : '未知错误'
+    })
+  }
+})
+
+// 进度分析
+router.post('/progress-analytics', async (req, res) => {
+  try {
+    const { userId = 'anonymous', timeRange = '7d' } = req.body
+
+    const analyticsData = {
+      userId,
+      timeRange,
+      timestamp: new Date().toISOString()
+    }
+
+    // 尝试调用N8N分析工作流
+    try {
+      const response = await n8nClient.post('/webhook/progress-analytics', analyticsData)
+      
+      return res.json({
+        success: true,
+        analytics: response.data.analytics || {},
+        source: 'n8n_workflow'
+      })
+    } catch (n8nError: any) {
+      console.log('N8N分析工作流失败，使用备用方案:', n8nError?.message || 'Unknown error')
+    }
+
+    // 备用分析数据
+    const fallbackAnalytics = {
+      totalPoems: 5,
+      completedPoems: 3,
+      accuracyRate: 85,
+      timeSpent: 1200,
+      strengths: ['理解能力强', '记忆力好'],
+      improvements: ['可以增加练习量', '注意诗词韵律']
+    }
+    
+    return res.json({
+      success: true,
+      analytics: fallbackAnalytics,
+      source: 'fallback'
+    })
+
+  } catch (error) {
+    console.error('进度分析失败:', error)
+    return res.status(500).json({ 
+      success: false,
+      error: '进度分析失败',
+      details: error instanceof Error ? error.message : '未知错误'
+    })
+  }
+})
+
+// 学习助手
+router.post('/learning-assistant', async (req, res) => {
+  try {
+    const { query, context = {}, userId = 'anonymous' } = req.body
+
+    const assistantData = {
+      query,
+      context,
+      userId,
+      timestamp: new Date().toISOString()
+    }
+
+    // 尝试调用N8N学习助手工作流
+    try {
+      const response = await n8nClient.post('/webhook/learning-assistant', assistantData)
+      
+      return res.json({
+        success: true,
+        response: response.data.response || '很抱歉，我暂时无法回答您的问题。',
+        source: 'n8n_workflow'
+      })
+    } catch (n8nError: any) {
+      console.log('N8N学习助手工作流失败，使用备用方案:', n8nError?.message || 'Unknown error')
+    }
+
+    // 备用助手回复
+    const fallbackResponse = '我是您的古诗词学习助手！您可以向我询问任何关于古诗词的问题，我会尽力为您解答。'
+    
+    return res.json({
+      success: true,
+      response: fallbackResponse,
+      source: 'fallback'
+    })
+
+  } catch (error) {
+    console.error('学习助手请求失败:', error)
+    return res.status(500).json({ 
+      success: false,
+      error: '学习助手请求失败',
+      details: error instanceof Error ? error.message : '未知错误'
+    })
+  }
+})
+
+// 学习进度记录
+router.post('/learning-progress', async (req, res) => {
+  try {
+    const progressData = {
+      ...req.body,
+      timestamp: new Date().toISOString()
+    }
+
+    // 尝试发送到N8N进度工作流
+    try {
+      const response = await n8nClient.post('/webhook/learning-progress', progressData)
+      
+      return res.json({
+        success: true,
+        message: '学习进度已记录',
+        data: response.data
+      })
+    } catch (n8nError: any) {
+      console.log('N8N学习进度工作流失败，使用备用方案:', n8nError?.message || 'Unknown error')
+    }
+
+    // 备用方案：本地记录
+    console.log('学习进度记录（本地）:', progressData)
+    
+    return res.json({
+      success: true,
+      message: '学习进度已本地记录',
+      data: progressData
+    })
+
+  } catch (error) {
+    console.error('学习进度记录失败:', error)
+    return res.status(500).json({ 
+      success: false,
+      error: '学习进度记录失败',
+      details: error instanceof Error ? error.message : '未知错误'
+    })
+  }
+})
+
 // 辅助函数：计算准确率
 function calculateAccuracy(userAnswers: string[]): number {
   // 这里需要与正确答案比较，暂时返回模拟值
@@ -424,7 +606,7 @@ router.use((error: any, req: express.Request, res: express.Response, next: expre
     })
   }
   
-  res.status(500).json({
+  return res.status(500).json({
     error: 'N8N集成错误',
     details: error.message
   })

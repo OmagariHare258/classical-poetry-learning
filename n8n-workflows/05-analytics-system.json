@@ -1,0 +1,74 @@
+{
+  "name": "学习分析",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "progress-analytics",
+        "responseMode": "responseNode"
+      },
+      "id": "analytics-webhook",
+      "name": "分析触发",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 学习数据分析\nconst learningData = $input.first().json;\nconst { userId = 'anonymous', timeRange = '7d' } = learningData;\n\n// 模拟分析数据\nconst analytics = {\n  period: timeRange,\n  totalPoems: Math.floor(Math.random() * 15) + 5,\n  completedPoems: Math.floor(Math.random() * 10) + 2,\n  accuracyRate: Math.floor(Math.random() * 30) + 70,\n  timeSpent: Math.floor(Math.random() * 1800) + 600, // 秒\n  averageScore: Math.floor(Math.random() * 20) + 80,\n  \n  // 学习特点分析\n  strengths: ['记忆力强', '理解能力好', '学习积极性高'],\n  improvements: ['可以加快学习速度', '增加练习量', '多背诵经典篇目'],\n  \n  // 推荐难度\n  recommendedLevel: 'intermediate',\n  \n  // 学习趋势\n  trend: 'improving',\n  \n  // 最佳学习时间\n  bestLearningTime: '上午9-11点',\n  \n  timestamp: new Date().toISOString()\n};\n\nreturn {\n  success: true,\n  analytics: analytics,\n  userId: userId,\n  source: 'n8n_workflow'\n};"
+      },
+      "id": "analytics-processor",
+      "name": "数据分析",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "analytics-response",
+      "name": "返回分析",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        600,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "分析触发": {
+      "main": [
+        [
+          {
+            "node": "数据分析",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "数据分析": {
+      "main": [
+        [
+          {
+            "node": "返回分析",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}

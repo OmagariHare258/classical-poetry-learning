@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>前端测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: white;
+            font-size: 12px;
+        }
+        .success { background-color: #4CAF50; }
+        .error { background-color: #f44336; }
+        .loading { background-color: #2196F3; }
+        .poem-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #fafafa;
+        }
+        button {
+            background-color: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #005a87;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎯 古诗文学习平台 - 前端测试页面</h1>
+    
+    <div class="test-section">
+        <h2>📊 服务状态检查</h2>
+        <p>后端API状态: <span id="api-status" class="status loading">检查中...</span></p>
+        <p>前端服务: <span id="frontend-status" class="status success">正常运行</span></p>
+        <button onclick="checkApiStatus()">重新检查API</button>
+    </div>
+
+    <div class="test-section">
+        <h2>📚 诗词数据测试</h2>
+        <p>数据库连接: <span id="db-status" class="status loading">检查中...</span></p>
+        <p>诗词总数: <span id="poem-count">加载中...</span></p>
+        <button onclick="loadPoems()">加载诗词列表</button>
+        <button onclick="loadPoemStats()">加载统计数据</button>
+    </div>
+
+    <div class="test-section">
+        <h2>📖 诗词列表</h2>
+        <div id="poems-container">
+            <p>点击"加载诗词列表"按钮查看数据...</p>
+        </div>
+    </div>
+
+    <script>
+        // API基础URL
+        const API_BASE = '';
+
+        // 检查API状态
+        async function checkApiStatus() {
+            const statusElement = document.getElementById('api-status');
+            statusElement.textContent = '检查中...';
+            statusElement.className = 'status loading';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/health`);
+                const data = await response.json();
+                
+                if (data.status === 'ok') {
+                    statusElement.textContent = '✅ 连接正常';
+                    statusElement.className = 'status success';
+                    
+                    // 检查数据库状态
+                    const dbStatusElement = document.getElementById('db-status');
+                    if (data.services && data.services.database === 'connected') {
+                        dbStatusElement.textContent = '✅ 已连接';
+                        dbStatusElement.className = 'status success';
+                    } else {
+                        dbStatusElement.textContent = '❌ 连接失败';
+                        dbStatusElement.className = 'status error';
+                    }
+                } else {
+                    statusElement.textContent = '❌ API错误';
+                    statusElement.className = 'status error';
+                }
+            } catch (error) {
+                statusElement.textContent = '❌ 连接失败';
+                statusElement.className = 'status error';
+                console.error('API检查失败:', error);
+            }
+        }
+
+        // 加载诗词统计
+        async function loadPoemStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/poems-stats`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const countElement = document.getElementById('poem-count');
+                    countElement.textContent = `${data.data.total} 首诗词`;
+                }
+            } catch (error) {
+                console.error('加载统计数据失败:', error);
+                document.getElementById('poem-count').textContent = '加载失败';
+            }
+        }
+
+        // 加载诗词列表
+        async function loadPoems() {
+            const container = document.getElementById('poems-container');
+            container.innerHTML = '<p>加载中...</p>';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/poems?limit=10`);
+                const data = await response.json();
+                
+                if (data.success && data.data.length > 0) {
+                    container.innerHTML = '';
+                    
+                    data.data.forEach(poem => {
+                        const poemCard = document.createElement('div');
+                        poemCard.className = 'poem-card';
+                        
+                        poemCard.innerHTML = `
+                            <h3>${poem.title} - ${poem.author} (${poem.dynasty})</h3>
+                            <p><strong>内容：</strong>${poem.content}</p>
+                            <p><strong>翻译：</strong>${poem.translation || '暂无翻译'}</p>
+                            <p><strong>难度：</strong>${poem.difficulty} | <strong>分类：</strong>${poem.category}</p>
+                        `;
+                        
+                        container.appendChild(poemCard);
+                    });
+
+                    // 添加总计信息
+                    const totalInfo = document.createElement('p');
+                    totalInfo.innerHTML = `<strong>显示 ${data.data.length} 首诗词 (共 ${data.total} 首)</strong>`;
+                    container.appendChild(totalInfo);
+                } else {
+                    container.innerHTML = '<p>❌ 没有找到诗词数据</p>';
+                }
+            } catch (error) {
+                container.innerHTML = '<p>❌ 加载失败: ' + error.message + '</p>';
+                console.error('加载诗词失败:', error);
+            }
+        }
+
+        // 页面加载时自动检查状态
+        window.addEventListener('load', () => {
+            checkApiStatus();
+            loadPoemStats();
+        });
+    </script>
+</body>
+</html>

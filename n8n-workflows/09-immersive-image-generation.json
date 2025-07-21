@@ -1,0 +1,149 @@
+{
+  "name": "沉浸式图像生成",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-image",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-image",
+      "name": "图像请求",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "webhookId": "generate-image"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.poemTitle}}",
+              "operation": "contains",
+              "value2": "春"
+            }
+          ]
+        }
+      },
+      "id": "check-season",
+      "name": "检查季节",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [400, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst poemTitle = data.poemTitle || '';\nconst style = data.style || 'classical';\n\n// 春季主题图片\nconst springImages = [\n  'https://picsum.photos/800/600?random=spring1',\n  'https://picsum.photos/800/600?random=spring2',\n  'https://picsum.photos/800/600?random=spring3'\n];\n\nconst selectedImage = springImages[Math.floor(Math.random() * springImages.length)];\n\nreturn {\n  success: true,\n  imageUrl: selectedImage,\n  theme: '春季意境',\n  style: style,\n  poemTitle: poemTitle,\n  generationTime: 800,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "spring-image",
+      "name": "春季图像",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 150]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst poemTitle = data.poemTitle || '';\nconst style = data.style || 'classical';\n\n// 通用主题图片\nconst generalImages = [\n  'https://picsum.photos/800/600?random=general1',\n  'https://picsum.photos/800/600?random=general2',\n  'https://picsum.photos/800/600?random=general3',\n  'https://picsum.photos/800/600?random=general4'\n];\n\nconst selectedImage = generalImages[Math.floor(Math.random() * generalImages.length)];\n\nreturn {\n  success: true,\n  imageUrl: selectedImage,\n  theme: '古典意境',\n  style: style,\n  poemTitle: poemTitle,\n  generationTime: 600,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "general-image",
+      "name": "通用图像",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 350]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\n// 如果没有从条件节点来的数据，创建默认响应\nif (!data.success) {\n  return {\n    success: true,\n    imageUrl: 'https://picsum.photos/800/600?random=default',\n    theme: '默认意境',\n    style: 'classical',\n    poemTitle: data.poemTitle || 'unknown',\n    generationTime: 500,\n    timestamp: new Date().toISOString()\n  };\n}\n\nreturn data;"
+      },
+      "id": "default-handler",
+      "name": "默认处理",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 450]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "response-image",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "图像请求": {
+      "main": [
+        [
+          {
+            "node": "检查季节",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "默认处理",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "检查季节": {
+      "main": [
+        [
+          {
+            "node": "春季图像",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "通用图像",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "春季图像": {
+      "main": [
+        [
+          {
+            "node": "返回结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "通用图像": {
+      "main": [
+        [
+          {
+            "node": "返回结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "默认处理": {
+      "main": [
+        [
+          {
+            "node": "返回结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}

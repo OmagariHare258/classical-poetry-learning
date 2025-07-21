@@ -1,0 +1,149 @@
+{
+  "name": "沉浸式进度跟踪",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "immersive-progress",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-progress",
+      "name": "进度请求",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 300],
+      "webhookId": "immersive-progress"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.completedPoems}}",
+              "operation": "larger",
+              "value2": 10
+            }
+          ]
+        }
+      },
+      "id": "check-level",
+      "name": "检查等级",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [400, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst userId = data.userId || 'anonymous';\nconst completedPoems = data.completedPoems || 0;\nconst studyTime = data.studyTime || 0;\nconst accuracy = data.accuracy || 0;\n\n// 高级用户进度分析\nconst analysis = {\n  userId: userId,\n  level: 'advanced',\n  completedPoems: completedPoems,\n  studyTime: studyTime,\n  accuracy: accuracy,\n  achievements: ['初学者', '进步者', '熟练者'],\n  nextGoal: '达到专家级别',\n  recommendation: '建议学习更高难度的诗词作品',\n  detailedStats: {\n    averageTime: Math.round(studyTime / Math.max(completedPoems, 1)),\n    progressRate: Math.min((completedPoems / 50) * 100, 100),\n    masteryLevel: accuracy > 80 ? 'excellent' : 'good'\n  },\n  timestamp: new Date().toISOString()\n};\n\nreturn analysis;"
+      },
+      "id": "advanced-analysis",
+      "name": "高级分析",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 150]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst userId = data.userId || 'anonymous';\nconst completedPoems = data.completedPoems || 0;\nconst studyTime = data.studyTime || 0;\nconst accuracy = data.accuracy || 0;\n\n// 初级用户进度分析\nconst analysis = {\n  userId: userId,\n  level: 'beginner',\n  completedPoems: completedPoems,\n  studyTime: studyTime,\n  accuracy: accuracy,\n  achievements: completedPoems >= 5 ? ['初学者'] : [],\n  nextGoal: '完成10首诗词学习',\n  recommendation: '继续学习基础诗词，建立良好基础',\n  detailedStats: {\n    averageTime: Math.round(studyTime / Math.max(completedPoems, 1)),\n    progressRate: Math.min((completedPoems / 20) * 100, 100),\n    masteryLevel: accuracy > 60 ? 'good' : 'improving'\n  },\n  timestamp: new Date().toISOString()\n};\n\nreturn analysis;"
+      },
+      "id": "basic-analysis",
+      "name": "基础分析",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 350]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst userId = data.userId || 'anonymous';\n\n// 默认进度响应\nconst defaultProgress = {\n  userId: userId,\n  level: 'new',\n  completedPoems: 0,\n  studyTime: 0,\n  accuracy: 0,\n  achievements: [],\n  nextGoal: '开始学习第一首诗',\n  recommendation: '欢迎开始古诗词学习之旅！',\n  detailedStats: {\n    averageTime: 0,\n    progressRate: 0,\n    masteryLevel: 'starting'\n  },\n  timestamp: new Date().toISOString()\n};\n\nreturn defaultProgress;"
+      },
+      "id": "default-progress",
+      "name": "默认进度",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 450]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "response-progress",
+      "name": "返回结果",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "进度请求": {
+      "main": [
+        [
+          {
+            "node": "检查等级",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "默认进度",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "检查等级": {
+      "main": [
+        [
+          {
+            "node": "高级分析",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "基础分析",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "高级分析": {
+      "main": [
+        [
+          {
+            "node": "返回结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "基础分析": {
+      "main": [
+        [
+          {
+            "node": "返回结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "默认进度": {
+      "main": [
+        [
+          {
+            "node": "返回结果",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1"
+}
